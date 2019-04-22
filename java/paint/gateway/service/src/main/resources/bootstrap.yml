@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: ${parentArtifactName}
+  main:
+    web-environment: true
+    banner-mode: OFF
+  cloud:
+    consul:
+      config:
+        enabled: true
+        prefix: config
+        defaultContext: application
+        profileSeparator: '-'
+        format: FILES
+        watch:
+          enabled: true
+          delay: 5s
+      discovery:
+        catalogServicesWatch: 
+          enabled: true
+          delay: 1s
+        healthCheckPath: ${management.server.servlet.context-path}/health
+        healthCheckInterval: 15s
+        instanceId: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+logging:
+  config: 'classpath:logback-spring.xml'
+management:
+  health:
+    consul:
+      enabled: true
+grpc:
+  server:
+    security:
+      enabled: false
+    port: 4545
+server:
+  port: 4554
+applications: consulHystrixClient
+turbine:
+  aggregator:
+    clusterConfig: ${applications}
+  appConfig: ${applications}
+

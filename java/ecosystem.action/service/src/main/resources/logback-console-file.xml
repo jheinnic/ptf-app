@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <!-- %L lowers performance, %C and %c break indentation and therefore reduce readability, normal %t is verbose -->
+      <pattern>%d{HH:mm:ss.SSS} [%-12.12t] %-5p %m%n</pattern>
+    </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>${logback.level.org.optaplaner:-TRACE}</level>
+    </filter>
+  </appender>
+
+  <appender name="fileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${logback.dir:-local/log}}/optaplanner.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+      <fileNamePattern>local/log/optaplanner.%i.log.zip</fileNamePattern>
+      <minIndex>1</minIndex>
+      <maxIndex>3</maxIndex>
+    </rollingPolicy>
+    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+      <maxFileSize>5MB</maxFileSize>
+    </triggeringPolicy>
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%t] %-5p %m%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- To override debug log level from command line, use VM option:
+       "-Dlogback.level.org.optaplanner=trace" -->
+  <logger name="org.optaplanner" level="${logback.level.org.optaplanner:-DEBUG}"/>
+
+  <root level="warn">
+    <appender-ref ref="consoleAppender" />
+    <appender-ref ref="fileAppender" />
+  </root>
+
+</configuration>

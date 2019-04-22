@@ -1,0 +1,26 @@
+<ng-container>
+  <h1>Contacts</h1>
+  <ng-template caiNavbarTemplate>
+    <mat-tab-group>
+      <mat-tab>
+        <ng-template matTabLabel>Left</ng-template>
+      </mat-tab>
+      <mat-tab>
+        <ng-template matTabLabel>Right</ng-template>
+      </mat-tab>
+    </mat-tab-group>
+  </ng-template>
+  <mat-grid-list cols="4" gutterSize="2px" rowHeight="200px">
+    <mat-grid-tile *ngFor="let cell of (allContacts | async)" colspan="1" rowspan="1">
+      <mat-card>
+        <mat-card-title>{{cell.name}}</mat-card-title>
+        <mat-card-subtitle>{{cell.company}}</mat-card-subtitle>
+        <mat-card-content>{{cell.role}}</mat-card-content>
+        <mat-card-actions>
+          <button mat-fab (click)="deleteOne(cell.id)" ><span color="warn">{{cell.size}}</span></button>
+        </mat-card-actions>
+      </mat-card>
+    </mat-grid-tile>
+  </mat-grid-list>
+  <button (click)="makeOne()">Click Me</button>
+</ng-container>

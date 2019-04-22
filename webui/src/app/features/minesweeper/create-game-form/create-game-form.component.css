@@ -1,0 +1,10 @@
+.board-options {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.board-options label {
+  flex: 1 0 auto;
+}

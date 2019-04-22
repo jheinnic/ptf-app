@@ -1,0 +1,12 @@
+<span [ngSwitch]="playerState">
+    <span *ngSwitchCase="'playing'">
+      {{safeCellsLeft}} safe cells of the {{hiddenCellsLeft}} hidden cells remain.  Be careful!
+    </span>
+  <span *ngSwitch="'inactive'">Would you like to play <a (click)="showOptions()">a game</a>?</span>
+    <span *ngSwitchCase="'winner'">
+      You've cleared the mine field with no casualties!  Congratulations!
+    </span>
+    <span *ngSwitchCase="'defeated'">
+      It happened so quickly, no one could have seen it coming...
+    </span>
+</span>

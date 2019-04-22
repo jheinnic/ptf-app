@@ -1,0 +1,73 @@
+:host {
+  flex-flow: column nowrap;
+  align-content: stretch;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+mat-sidenav-container {
+  width: 100vw;
+  overflow: hidden;
+}
+
+footer {
+  height: 32px;
+}
+
+router-outlet {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  mat-sidenav {
+    display: block;
+    height: calc(100vh - 64px - 48px - 32px);
+    overflow: hidden;
+  }
+
+  router-outlet ::ng-deep + * > * {
+    display: block;
+    height: calc(100vh - 64px - 48px - 32px);
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 599px) {
+  /* Extend sidenav over the footer since it may have scrolled away. */
+  mat-sidenav {
+    display: block;
+    height: calc(100vh - 56px - 48px);
+    overflow: hidden;
+  }
+
+  /* Set min-height to preserve the footer's distance if space permits, but use auto height to push
+     footer as far down along the scroll path as needed to fit. */
+  router-outlet ::ng-deep + * > * {
+    display: block;
+    height: auto;
+    min-height: calc(100vh - 56px - 48px - 32px);
+    overflow: scroll;
+  }
+}
+
+::ng-deep mat-sidenav-content {
+  width: 100%;
+}
+
+footer {
+  height: 48px;
+  width: 100vw;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  background-color: #f0f0f0;
+}
+
+.footer-text {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+  font-family: 'Anonymous Pro', 'Roboto', monospace;
+}

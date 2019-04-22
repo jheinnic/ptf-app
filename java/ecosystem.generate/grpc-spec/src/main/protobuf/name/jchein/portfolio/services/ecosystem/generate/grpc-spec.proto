@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_outer_classname = "ExampleProto";
+option java_package = "name.jchein.portfolio.services.ecosystem.generate.grpc.proto";
+
+import "name/jchein/portfolio/common/grpc/action/actions.proto";
+
+// Delivery Routing service definition.
+service Example {
+    rpc createExample (CreateExampleRequest) returns (BasicReply) { }
+
+    rpc generateEcosystem (GenerateEcosystemRequest) returns (EcosystemDefinition) { }
+}
+
+// Request messages contain command properties.
+message CreateExampleRequest {
+    string id = 1;
+    string pilotId = 2;
+    string firstName = 3;
+    string middleName = 4;
+    string lastName = 5;
+    string suffix = 6;
+}
+
+message GenerateEcosystemRequest {
+    uint32 symbolCount = 2;
+    uint32 suffixLength = 3;
+    uint32 suffixSymbolCount = 4;
+    uint32 wheelCount = 5;
+}
+
+message GenerateIndividualRequest {
+    repeated string symbols = 2;
+    uint32 lengthMean = 3;
+    uint32 lengthDev = 4;
+    bytes rawGenAffinity = 5;
+}
+
+message EcosystemDefinition {
+  repeated OuterSymbol outerSymbols = 2;
+  uint32 initialPrefixIndex = 3;
+  repeated string suffixTokens = 4;
+  uint32 suffixLength = 5;
+  repeated ProbabilityWheel probabilityWheels = 6;
+  uint32 initialWheelIndex = 7;
+  bytes rawGenAffinity = 8;
+}
+
+message OuterSymbol {
+    string token = 2;
+    uint32 prefixTtl = 3;
+}
+
+message AdvanceCdfItem {
+   float cdf = 2;
+   uint32 steps = 3;
+}
+
+message PrefixDrainCdfItem {
+   float cdf = 2;
+   uint32 drain = 3;
+}
+
+message OnUseCdfItem {
+   float wheel = 2;
+   float prefix = 3;
+   float suffix = 4;
+   float drop = 5;
+}
+
+message ProbabilityWheel {
+    repeated AdvanceCdfItem advanceCdf = 2;
+    repeated PrefixDrainCdfItem prefixDrainCdf = 3;
+    repeated OnUseCdfItem onUseCdf = 4;
+}
+
+export class Sequence {
+    constructor( wordSystem: WordSystem, symbolIndices: number[] ) {
+    }
+}
+
+

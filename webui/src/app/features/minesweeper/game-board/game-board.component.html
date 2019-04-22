@@ -1,0 +1,26 @@
+<ng-container>
+  <div #gameBoard class="game-board" fxLayout="row wrap" fxLayoutAlign="space-between space-between"
+       [style.width.px]="boardWidth">
+    <img class="game-board-cell" *ngFor="let cellValue of (gameProgress | async).boardContent"
+         [src]="cellIcon(cellValue)" (click)="moveHere(cellValue.xCell, cellValue.yCell)"
+         [style.height.px]="cellSize" [fxFlex]="cellFlex">
+  </div>
+</ng-container>
+<!--div class="game-board" style="display: flex; flex-direction: column;">
+<span class="game-board-row" *ngFor="let row of latestOutcome.boardState; let cellY=index"
+    style="display: flex; flex-direction: row; flex: 1 1 auto;">
+<button class="game-board-cell" *ngFor="let cellX of genRange(row.size)"
+        style="flex: 1 1 auto;" (click)="moveHere(cellIdx(cellX, cellY))">
+  <img [style.height.px]="24" [style.width.px]="24" [src]="cellIcon(row.get(cellX))">
+</button>
+</span>
+</div-->
+<!--div class="game-board-container" style="display: flex; flex-direction: column;">
+<span class="game-board-row" *ngFor="let cellY of genRange(ySize)"
+      style="display: flex; flex-direction: row; flex: 1 1 auto;">
+  <button class="game-board-column" *ngFor="let cellX of genRange(xSize)" style="flex: 1 1 auto;"
+          (click)="moveHere(cellIdx(cellX, cellY))">
+    <img [style.height.px]="24" [style.width.px]="24" [src]="cellIcon(cellX, cellY)">
+  </button>
+</span>
+</div-->

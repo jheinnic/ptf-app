@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>name.jchein.portfolio.maven</groupId>
+        <artifactId>starter-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <groupId>name.jchein.portfolio.services</groupId>
+    <artifactId>ecosystem.generate-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+
+    <name>{ecosystem.generate} Parent POM</name>
+    <description>Parent POM for ecosystem.generate microservice modules</description>
+    <packaging>pom</packaging>
+
+    <properties>
+        <mavenbuild.schema-name>ecosystem_generate</mavenbuild.schema-name>
+        <mavenbuild.service-name>ecosystem.generate</mavenbuild.service-name>
+        <mavenbuild.service-path>ecosystem/generate</mavenbuild.service-path>
+    </properties>
+</project>

@@ -1,0 +1,25 @@
+<ng-template #defaultTemplate>
+  <ng-content></ng-content>
+</ng-template>
+
+<ng-template #contentPortal="cdkPortal" [cdkPortal]="defaultTemplate"></ng-template>
+<ng-template [cdkPortalOutlet]="contentPortal"></ng-template>
+
+
+<!--ng-container #container *tdnNavbarContainer [ngStyle]="showNavbar ? { } : {display: 'none'}"-->
+<!--ng-container *ngIf="showNavbar" [ngStyle]="showNavbar ? { } : {display: 'none'}"-->
+<!--<ng-container #container></ng-container>-->
+<ng-container tdnNavbarContainer></ng-container>
+
+<ng-template #defaultPortal="cdkPortal" cdkPortal>
+  <div mat-tab-nav-bar color="accent" backgroundColor="primary">
+    <a mat-tab-link routerLink="/route-one" routerLinkActive [routerLinkActiveOptions]="{exact: true}"
+       #rla1="routerLinkActive" [active]="rla1.isActive">Route The First</a>
+    <a mat-tab-link routerLink="/route-two" routerLinkActive [routerLinkActiveOptions]="{exact: true}"
+       #rla2="routerLinkActive" [active]="rla2.isActive">Route The Second</a>
+    <a mat-tab-link routerLink="/" routerLinkActive [routerLinkActiveOptions]="{exact: true}" #rla3="routerLinkActive"
+       [active]="rla3.isActive">Route The Root</a>
+  </div>
+</ng-template>
+
+<ng-template [cdkPortalOutlet]="defaultPortal"></ng-template>

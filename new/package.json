@@ -1,0 +1,23 @@
+{
+    "name": "node",
+    "version": "1.0.0",
+    "main": "index.js",
+    "author": "John Heinnickel` <jheinnic@gmail.com>",
+    "license": "MIT",
+    "files": [],
+    "private": true,
+    "workspaces": [
+        "packages/*"
+    ],
+    "references": [
+        {
+            "path": "./packages/gql-api"
+        },
+        {
+            "path": "./packages/webui"
+        }
+    ],
+    "devDependencies": {
+        "typescript": "3.2.2"
+    }
+}

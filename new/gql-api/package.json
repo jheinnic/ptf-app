@@ -1,0 +1,48 @@
+{
+  "name": "@jchptf/gql-api",
+  "version": "0.0.1",
+  "description": "Web UI facing GraphQL API gateway",
+  "keywords": [
+    "graphql",
+    "nestjs",
+    "portfolio",
+    "javascript",
+    "typescript",
+    "nodejs",
+    "microservices",
+    "api"
+  ],
+  "author": "John Heinnickel` <jheinnic@gmail.com>",
+  "homepage": "https://github.com/jheinnic/ptf-app#readme",
+  "license": "MIT",
+  "main": "dist/gql-api.main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jheinnic/ptf-app.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/jheinnic/ptf-app/issues"
+  },
+  "dependencies": {
+    "@jchptf/api": "^0.0.33",
+    "@jchptf/config": "^0.0.19",
+    "@jchptf/consul": "^0.0.7",
+    "@nestjs/common": "^5.6.2",
+    "@nestjs/core": "^5.6.2",
+    "@nestjs/graphql": "^5.5.1",
+    "@thi.ng/errors": "^0.1.12",
+    "apollo-server-express": "^2.4.0",
+    "class-transformer": "^0.1.9",
+    "graphql": "^14.1.1",
+    "graphql-tools": "^4.0.3",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^6.3.3",
+    "tslib": "^1.9.3"
+  },
+  "devDependencies": {
+    "typescript": "3.2.4"
+  }
+}

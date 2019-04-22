@@ -1,0 +1,12 @@
+export enum ErrorCode {
+   OK                  = 0,
+   GAME_SESSION_ABSENT = -1,
+   GAME_NOT_FOUND      = -2,
+   NEGATIVE_CELL_INDEX = -3,
+   CELL_OUT_OF_BOUNDS  = -4,
+   NEGATIVE_BOARD_SIZE = -5,
+   NEGATIVE_MINE_COUNT = -6,
+   MINE_COUNT_OVERFLOW = -7,
+   INTERNAL_ERROR          = -1001,
+   TEMPORARILY_UNAVAILABLE = -1002
+}

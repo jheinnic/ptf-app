@@ -1,0 +1,24 @@
+.game-board {
+}
+
+.game-board-cell {
+}
+
+img.game-board-cell {
+  flex: 1 1 auto;
+}
+
+button.game-board-cell {
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: stretch;
+  align-items: stretch;
+  height: 100%;
+}
+
+mat-grid-tile.game-board-cell {
+  flex: 1 1 auto;
+}

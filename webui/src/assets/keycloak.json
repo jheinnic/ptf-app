@@ -1,0 +1,11 @@
+{
+  "realm": "Portfolio",
+  "auth-server-url": "https://portfolio.dev.jchein.name:28443/auth",
+  "ssl-required": "none",
+  "resource": "ptf-webui",
+  "public-client": true,
+  "enable-cors": true,
+  "verify-token-audience": true,
+  "use-resource-role-mappings": true,
+  "confidential-port": 0
+}

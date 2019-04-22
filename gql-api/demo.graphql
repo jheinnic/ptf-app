@@ -1,0 +1,37 @@
+type DemoThang {
+    # When paginating forwards, are there more items?
+    hasNow: Boolean!
+
+    # When paginating backwards, are there more items?
+    hadThen: Boolean!
+}
+
+type Query {
+    getCats: [Cat]
+    cat(id: ID!): Cat
+    countEm: [DemoThang]
+}
+
+type Mutation {
+    createCat(createCatInput: CreateCatInput): Cat
+}
+
+type Subscription {
+    catCreated: Cat
+}
+
+type Cat {
+    id: Int
+    name: String
+    age: Int
+}
+
+input CreateCatInput {
+    name: String
+    age: Int
+}
+
+schema {
+    query: Query
+    mutation: Mutation
+}

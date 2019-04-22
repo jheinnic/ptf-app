@@ -1,0 +1,38 @@
+<mat-toolbar color="primary" class="toolbar-top">
+  <button mat-mini-fab [matMenuTriggerFor]="appMenu" color="accent" matTooltip="Tooltip!" matTooltipPosition="below">
+    <mat-icon>menu</mat-icon>
+  </button>
+  <button mat-mini-fab="true" (click)="openSideNav()" color="accent" matTooltip="Tooltip!" matTooltipPosition="below">
+    <mat-icon>menu</mat-icon>
+  </button>
+  <span class="brand-name">{{navbarData.brandName}}</span>
+  <div fxFlexFill flex-spacer></div>
+  <button *ngIf="isLoggedIn()" mat-mini-fab="true" (click)="onClickSettings()" color="accent" class="ml-auto"
+          matTooltip="Settings" matTooltipPosition="below">
+    <mat-icon>settings</mat-icon>
+  </button>
+  <!-- TODO: Upgrade to a media-aware ngSwitch here...-->
+  <span *ngIf="isLoggedIn()" class="ml-1">Hello, {{userInfo?.username}}</span>
+  <button *ngIf="!isLoggedIn()" mat-raised-button (click)="onClickRegister()" color="accent" class="ml-auto"
+          matTooltip="Tooltip!" matTooltipPosition="below">
+    <span>REGISTER</span>
+  </button>
+  <button *ngIf="!isLoggedIn()" mat-mini-fab (click)="onClickLogin()" color="accent" class="ml-1"
+          matTooltip="Tooltip!" matTooltipPosition="left">
+    <mat-icon>cloud_off</mat-icon>
+  </button>
+</mat-toolbar>
+<mat-menu #appMenu="matMenu">
+  <button *ngFor="let menuData of navbarData.menuItems" [routerLink]="menuData.routerLink" mat-menu-item="matMenu"
+          [disabled]="menuData.disabled ? 'disabled' : ''" matTooltip="Tooltip!" matTooltipPosition="after">
+    <mat-icon *ngIf="menuData.iconName > ''">{{menuData.iconName}}</mat-icon>
+    <span *ngIf="menuData.displayName > ''">{{menuData.displayName}}</span>
+  </button>
+  <button mat-menu-item="matMenu" [disabled]="false" matTooltip="Tooltip!" matTooltipPosition="after">
+    <mat-icon>settings</mat-icon>
+    <span>Settings</span>
+  </button>
+  <button mat-menu-item="matMenu" matTooltip="Tooltip!" matTooltipPosition="below">
+    <span><mat-icon>help</mat-icon>Help1</span>
+  </button>
+</mat-menu>

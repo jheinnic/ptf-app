@@ -1,0 +1,119 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  keychains: [Keychain]
+
+}
+
+enum ComputeJobType {
+  CREATE_KEYS,
+  DERIVE_ART
+}
+
+type Wallet {
+  keyCredits: int
+  artCredits: int
+  ownedBy: Organization
+
+}
+
+type User {
+  uuid: ID
+  username: string
+  authorizations: [Enrollment]
+}
+
+type Enrollment {
+  uuid: ID
+  user: User
+  organization: Organization
+  role: Role
+}
+
+type OrganizationalRole {
+   uuid: ID
+   label: string
+   definedBy: Organization
+   appliedTo: [Enrollment]
+}
+
+type SystemRole {
+
+}
+
+union Role = OrganizationlRole | SystemRole
+
+union Resource = Keychain | Collection | ComputeNode
+
+type Organization {
+  clientId: string
+  realm: string
+}
+type ComputeNode {
+  uuid: ID
+  displayName: string
+  online: boolean
+}
+
+enum StorageServiceProvider {
+  S3,
+  CLOUDINARY
+}
+type ImageStore {
+  uuid: ID
+  provider: StorageServiceProvider
+  accountId: string
+  credentialValid: boolean
+  lastUsed: Date
+  firstRegistered: Date
+  lastModified: Date
+  .
+}
+
+enum NameMapKind {
+  Base64,
+  From7x8To8x7,
+  Trigrams
+}
+
+enum PaintShape {
+  Fit,
+  Fill,
+  Square
+}
+
+type PaintPolicy {
+  uuid: ID
+  label: string
+  owner: Organization
+  width: int
+  height: int
+  shape: PaintShape
+  nameMap: NameMapKind
+  prefixOffset: int
+  prefixBigEndian: boolean
+  suffixOffset: int
+  suffixBigEndian: boolean
+  collections: [Collection]
+}
+
+type Collection {
+  uuid: ID
+  label: string
+  owner: Organization
+
+}
+
+type Keychain {
+  uuid: ID
+  keyCount: int
+  keys: [KeyPair]
+}
+
+type KeyPair {
+  index: int
+  chain: Keychain
+}

@@ -1,0 +1,35 @@
+.root-layout-container, .sidenav-container {
+  height: calc(100vh - 16px);
+}
+
+.sidenav {
+  width: 200px;
+  box-shadow: 4px 0 6px rgba(0, 0, 0, .16);
+}
+
+.sidenav.mat-drawer-side {
+  z-index: 0;
+}
+
+.fixed-header {
+  position: fixed;
+  top: 8px;
+  width: calc(100vw - 216px);
+}
+
+mat-toolbar mat-icon {
+  height: 1em;
+  width: 1em;
+  font-size: 36px;
+  line-height: 1em;
+}
+
+#workspace-container {
+  margin-left: 16px;
+  margin-right: 8px;
+  margin-bottom: 96px;
+  min-height: calc(100vh - 16px - 113px - 48px);
+  /*min-width: calc(100vw - 200px - 16px);*/
+  display: flex;
+  flex-direction: column;
+}

@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_outer_classname = "ExampleProto";
+option java_package = "name.jchein.portfolio.services.ecosystem.query.grpc.proto";
+
+import "name/jchein/portfolio/common/grpc/action/actions.proto";
+
+// Delivery Routing service definition.
+service Example {
+    rpc createExample (CreateExampleRequest) returns (BasicReply) { }
+}
+
+// Request messages contain command properties.
+message CreateExampleRequest {
+    string id = 1;
+    string pilotId = 2;
+    string firstName = 3;
+    string middleName = 4;
+    string lastName = 5;
+    string suffix = 6;
+}
+

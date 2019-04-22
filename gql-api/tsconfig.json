@@ -1,0 +1,28 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "outDir": "../dist/out-tsc",
+    "baseUrl": "./src",
+    "target": "es2015",
+    "module": "es2015",
+    "moduleResolution": "node",
+    "lib": [ "es2018", "esnext.asynciterable", "dom" ],
+    "typeRoots": [ "node_modules/@types" ],
+    "paths": {
+      "@jchptf/chorus-vtscript": [ "dist/jchptf/chorus-vtscript" ]
+    },
+    "strict": true,
+    "sourceMap": true,
+    "declaration": false,
+    "skipLibCheck": true,
+    "importHelpers": true,
+    "downlevelIteration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
+  },
+  "include": [ "./**/*.ts"],
+  "exclude": [
+    "../node_modules",
+    "../dist"
+  ]
+}

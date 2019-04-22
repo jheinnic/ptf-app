@@ -1,0 +1,14 @@
+{
+  "/game/*": {
+    "target": "http://localhost:3000/",
+    "secure": false,
+    "logLevel": "debug",
+    "changeOrigin": true
+  },
+  "/noauth/*": {
+    "target": "https://portfolio.dev.jchein.name:28443/auth",
+    "secure": true,
+    "logLevel": "debug",
+    "changeOrigin": true
+  }
+}

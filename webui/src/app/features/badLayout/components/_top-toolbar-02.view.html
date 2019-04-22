@@ -1,0 +1,53 @@
+<mat-menu #appMenu="matMenu">
+  <!--
+  <button *ngFor="let menuData of navbarData.menuItems" [routerLink]="menuData.routerLink"
+          mat-menu-item="matMenu"
+          [disabled]="menuData.disabled ? 'disabled' : ''" matTooltip="Tooltip!"
+          matTooltipPosition="after">
+    <mat-icon *ngIf="menuData.iconName > ''">{{menuData.iconName}}</mat-icon>
+    <span *ngIf="menuData.displayName > ''">{{menuData.displayName}}</span>
+  </button>
+  -->
+  <button mat-menu-item="matMenu" [disabled]="false" matTooltip="Settings" matTooltipPosition="after">
+    <mat-icon>settings</mat-icon>
+    <span>Settings</span>
+  </button>
+  <button mat-menu-item="matMenu" matTooltip="Help" matTooltipPosition="below">
+    <span><mat-icon>help</mat-icon>Help</span>
+  </button>
+</mat-menu>
+<mat-toolbar fxLayoutGap="4px" color="primary">
+  <button mat-mini-fab color="accent" mat-tooltip="Navigation Menu" matTooltipPosition="below"
+          matTipShowDelay="725" (click)="showNavItems.emit()" fxFlex="0 0 auto" fxShow fxHide.lt-md>
+    <mat-icon>menu</mat-icon>
+  </button>
+  <button mat-mini-fab [matMenuTriggerFor]="appMenu" color="accent" matTooltip="Navigation Menu"
+          matTooltipPosition="below" matTipShowDelay="725" (click)="showNavItems.emit()"
+          fxFlex="0 0 auto" fxShow fxHide.gt-sm>
+    <mat-icon>menu</mat-icon>
+  </button>
+  <span class="brand-name" fxFlex="0 0 auto">{{(brandData$ | async)?.name}}</span>
+  <div fxFlex="0 1 100vw"></div>
+  <button *ngIf="hasValidLogin$ | async" mat-mini-fab="true" color="accent"
+          (click)="showSettings.emit()" matTooltip="Settings" matTooltipPosition="below"
+          matTipShowDelay="725" fxFlex="0 0 auto">
+    <mat-icon>settings</mat-icon>
+  </button>
+  <!-- TODO: Upgrade to a media-aware ngSwitch here...-->
+  <span fxFlex="0 0 auto" fxHide [fxShow.gt-md]="(hasValidLogin$ | async)">Hello,
+        {{(userProfile$ | async)?.firstName}}</span>
+  <button *ngIf="(hasValidLogin$ | async) === false" mat-raised-button (click)="beginRegister.emit()"
+          color="accent" matTooltip="Register" matTooltipPosition="below" fxFlex="0 0 auto">
+    <span>REGISTER</span>
+  </button>
+  <button *ngIf="! (hasValidLogin$ | async)" mat-mini-fab (click)="beginLogin.emit()" color="accent"
+          matTooltip="Login" matTooltipPosition="below" fxFlex="0 0 auto">
+    <mat-icon>cloud_off</mat-icon>
+  </button>
+</mat-toolbar>
+<nav mat-tab-nav-bar color="primary" backgroundColor="accent" >
+  <a mat-tab-link fxFlex="0 0 auto" routerLink="/books" routerLinkActive #rla="routerLinkActive"
+     [active]="rla.isActive" matTooltip="{{rla.isActive}}" matTooltipPosition="below">Books</a>
+  <a mat-tab-link fxFlex="0 0 auto" routerLink="/gqltoy" routerLinkActive #rla="routerLinkActive"
+     [active]="rla.isActive" [matTooltip]="rla.isActive" matTooltipPosition="below">GQL Toy</a>
+</nav>

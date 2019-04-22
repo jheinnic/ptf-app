@@ -1,0 +1,28 @@
+{
+  "README_options" : "See the 'Options' section at https://github.com/then/then-request",
+
+  "schema": {
+    "file": "schema.graphqls",
+    "request": {
+      "url" : "https://hivdb.stanford.edu/graphql",
+      "method" : "POST",
+      "postIntrospectionQuery" : true,
+      "options" : {
+        "headers": {
+          "user-agent" : "JS GraphQL"
+        }
+      }
+    }
+  },
+  "endpoints" : [
+    {
+      "name": "hivdb",
+      "url": "https://hivdb.stanford.edu/graphql",
+      "options" : {
+        "headers": {
+          "user-agent" : "JS GraphQL"
+        }
+      }
+    }
+  ]
+}

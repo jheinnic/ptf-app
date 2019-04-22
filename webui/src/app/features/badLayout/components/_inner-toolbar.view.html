@@ -1,0 +1,5 @@
+<nav mat-tab-nav-bar class="mat-primary">
+  <a *ngFor="let tabData of navbarData.tabs" mat-tab-link
+     routerLink="{{tabData.routerLink}}" routerLinkActive #rla="routerLinkActive" [active]="rla.isActive"
+     matTooltip="{{rlaSafe && rla.isActive}}!" matTooltipPosition="below">{{tabData.displayName}}</a>
+</nav>

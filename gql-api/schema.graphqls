@@ -1,0 +1,139 @@
+input CatalogSiftRequest {
+    filterCatalog
+}
+
+enum CatalogKey {
+    NAME,
+    CREATE_TIME,
+    WHEN_LAST_MODIFIED
+    TIMES_MODIFIED,
+    WHEN_LAST_VIEWED,
+    TIMES_VIEWED,
+    SIZE,
+    LABEL,
+    RATING
+}
+
+enum ArtifactType {
+    LEXICON,
+
+}
+
+enum ScopeType {
+    CREATE,
+    DELETE,
+    VIEW,
+    NANAGE,
+    SUBMIT,
+    APPROVE,
+    REVOKE,
+    ADMIN,
+    ARRANGE)
+}
+
+enum StringMatchType {
+    IS_EXACTLY,
+    IS_AFTER
+    IS_BEFORE,
+    CONTAINS,
+    BEGINS_WITH,
+    ENDS_WITH,
+    REGEX,
+}
+
+type StringFilter {
+    queryString: String!
+    searchType: StringMatchType
+    negateCondition: Boolean
+}
+
+type StringSort {
+    reverseOrder: Boolean
+    caseSensitive: Boolean
+}
+
+scalar Date
+
+enum TimeZone {
+    Pacific,
+    Mountain,
+    Central,
+    Eastern,
+    UTC,
+    GMT
+}
+
+enum TimeGranularity {
+    UseDate,
+    UseTime
+}
+
+enum RangeBoundaryType {
+    BeforeInclusive
+    BeforeExclusive
+    AfterInclusive
+    AfterExclusive
+    Equal
+}
+
+type DateFilter {
+    timezone: TimeZone!
+    granularity: TimeGranularity!
+    firstBoundaryType: RangeBoundaryType!
+    firstBoundaryValue: Date!
+    secondBoundaryType: RangeBoundaryType
+    secondBoundaryValue: Date
+}
+
+type DateOrder {
+    reverse: Boolean
+}
+
+enum SetMatchType {
+    MatchAny,
+    MatchAll,
+    MatchSome,
+    MatchNone,
+    MatchOne,
+    MatchMajority,
+    MatchMinority,
+}
+
+type LabelFilter {
+    matchType: SetMatchTye!
+    filterWithLabels: String[]
+}
+
+type Catalog {
+
+}
+
+type Query {
+    getCats: [Cat]
+    cat(id: ID!): Cat
+    countEm: [DemoThang]
+}
+
+type Mutation {
+    createCat(createCatInput: CreateCatInput): Cat
+}
+
+type Subscription {
+    catCreated: Cat
+}
+
+type Cat {
+    id: Int
+    name: String
+    age: Int
+}
+
+input CreateCatInput {
+    name: String
+    age: Int
+}
+
+schema {
+    query: Query
+    mutation: Mutation
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <!-- %L lowers performance, %C and %c break indentation and therefore reduce readability, normal %t is verbose -->
+      <pattern>%d{HH:mm:ss.SSS} [%-12.12t] %-5p %m%n</pattern>
+    </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>${logback.level.org.optaplaner:-TRACE}</level>
+    </filter>
+  </appender>
+
+  <!-- To override debug log level from command line, use VM option:
+       "-Dlogback.level.org.optaplanner=trace" -->
+  <logger name="org.optaplanner" additivity="true" level="${logback.level.org.optaplanner:-DEBUG}"/>
+
+  <root level="WARN">
+    <appender-ref ref="consoleAppender" />
+  </root>
+
+</configuration>

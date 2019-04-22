@@ -1,0 +1,19 @@
+<jchptf-masking-overlay></jchptf-masking-overlay>
+<div fxLayout="column">
+<jchptf-top-toolbar class="control-theme" fxFlex="0 0 auto" (beginLogin)="beginLogin()"
+                    (beginRegister)="beginRegister()" (beginLogout)="beginLogout()"
+                    (showNavItems)="showNavItems()" (hideNavItems)="hideNavItems()"
+                    (showSettings)="showSettings()" (hideSettings)="hideSettings()"
+                    [brandData$]="brandData$" [navItems$]="navItems$" [hasValidLogin$]="hasValidLogin$"
+                    [userProfile$]="userProfile$" [isNavMenuShown$]="isNavMenuShown$"></jchptf-top-toolbar>
+<mat-sidenav-container><!-- fxFlex.gt-xs="0 0 calc(100vh - 64px - 48px - 32px)" fxFlex.lt-sm="0 0 auto"-->
+  <mat-sidenav [opened]="isSideNavShown$ | async">
+    <!--jchptf-sidenav-panel fxLayout="column"></jchptf-sidenav-panel-->
+  </mat-sidenav>
+  <router-outlet></router-outlet>
+  <canvas jchptf-nav-balls></canvas>
+</mat-sidenav-container>
+</div>
+<footer fxHide.lt-sm fxShow.gt-xs fxLayout="column" fxLayoutAlign="center center">
+  <span fxFlex="0 0 auto" class="footer-text">&copy; John C. Heinnickel, 2017</span>
+</footer>

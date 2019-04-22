@@ -1,0 +1,33 @@
+<ng-container>
+  <h1>Mine Sweeper</h1>
+  <ng-template jchptfNavbarTemplate>
+    <mat-tab-group>
+      <mat-tab>
+        <ng-template matTabLabel>Left</ng-template>
+      </mat-tab>
+      <mat-tab>
+        <ng-template matTabLabel>Right</ng-template>
+      </mat-tab>
+    </mat-tab-group>
+  </ng-template>
+  <jchptf-create-game-form *ngIf="! (gameInProgress|async)"></jchptf-create-game-form>
+  <jchptf-status-panel></jchptf-status-panel>
+  <jchptf-game-board></jchptf-game-board>
+  <jchptf-play-again-options></jchptf-play-again-options>
+</ng-container>
+  <!--
+  Current Game has {{hiddenCellsLeft | async}} cells still hidden, of which {{safeCellsLeft | async}} are safe!
+  <div style="display: flex; flex-direction: column;">
+  <span *ngFor="let cellX of genRange(xSize | async)" class="row"
+        style="display: flex; flex-direction: row; flex: 1 1 auto;">
+    <span *ngFor="let cellY of genRange(ySize | async)" class="col" style="flex: 1 1 auto;">
+      <button (click)="moveHere(cellIdx(cellX, cellY))"><img [style.height.px]="24" [style.width.px]="24" [src]="cellIcon((boardState | async)[cellIdx(cellX, cellY)])"></button>
+    </span>
+  </span>
+  </div>
+  <mat-grid-list [cols]="xSize | async" gutterSize="0px" rowHeight="16px">
+    <mat-grid-tile *ngFor="let cellIndex of genRange((xSize | async) * (ySize | async))" colspan="1" rowspan="1">
+      <button (click)="moveHere(cellIndex)">{{(boardState | async)[cellIndex]}}</button>
+    </mat-grid-tile>
+  </mat-grid-list>
+  -->

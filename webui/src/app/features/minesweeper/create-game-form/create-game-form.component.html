@@ -1,0 +1,12 @@
+<form class="board-options" [formGroup]="optionsForm" (ngSubmit)="beginGame()">
+    <label>Horizontal Cell Count:
+    <input type="number" formControlName="xSize">
+    </label>
+    <label>Vertical Cell Count:
+    <input type="number" formControlName="ySize">
+    </label>
+    <label>Total Mine Count:
+    <input type="mineCount" formControlName="mineCount">
+    </label>
+  <button type="submit" [disabled]="! optionsForm.valid">Let's Play</button>
+</form>

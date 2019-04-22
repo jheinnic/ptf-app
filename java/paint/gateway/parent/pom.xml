@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>name.jchein.portfolio.maven</groupId>
+		<artifactId>starter-parent</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+
+	<groupId>name.jchein.portfolio.services</groupId>
+	<artifactId>paint.gateway-parent</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+
+	<name>paint.gateway-parent Parent POM</name>
+	<description>Parent POM for paint.gateway-parent microservice modules</description>
+ 	<packaging>pom</packaging>
+
+	<properties>
+		<mavenbuild.schema-name>paint_gateway</mavenbuild.schema-name>
+		<mavenbuild.service-name>paint.gateway</mavenbuild.service-name>
+		<mavenbuild.service-path>paint/gateway</mavenbuild.service-path>
+	</properties>
+</project>

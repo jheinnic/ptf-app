@@ -1,0 +1,23 @@
+{
+    "extends": "../tslint.json",
+    "rules": {
+        "directive-selector": [
+            true,
+            "attribute",
+            "jchptf",
+            "camelCase"
+        ],
+        "component-selector": [
+            true,
+            "element",
+            [ "jchptf", "toy" ],
+            "kebab-case"
+        ],
+      "no-unnecessary-class": [
+        true,
+        "allow-constructor-only",
+        "allow-static-only",
+        "allow-empty-class"
+      ]
+    }
+}

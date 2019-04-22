@@ -1,0 +1,28 @@
+<mat-toolbar color="primary" class="control-theme">
+  <span mat-dialog-title>Authentication Required</span>
+  <div flex-spacer></div>
+  <button mat-icon-button mat-dialog-close color="warn" class="mr-auto">
+    <mat-icon>close</mat-icon>
+  </button>
+</mat-toolbar>
+<mat-dialog-content>
+  <div fxLayout="column" fxLayoutWrap.gt-sm fxLayoutAlign="start stretch">
+    <span flex.gt-sm="1 1 20%" fxFlexOrder.gt-sm="1">You've accessed a feature of this site that requires a logged in user account.</span>
+    <span flex.gt-sm="2 2 40%" fxFlexOrder.gt-sm="2">Use your account with Google, Facebook, or BioID by selecting the appropriate provider's button.</span>
+    <div fxLayout="row" flex.gt-sm="3 3 50%" fxFlexOrder.gt-sm="4" flexLayoutAlign="space-around" fxFlexAlign="stretch">
+      <a class="loginBtn loginBtnGoogle" (click)="login('google')"><span class="text">Google</span></a>
+      <a class="loginBtn loginBtnFacebook" (click)="login('facebook')"><span class="text">Facebook</span></a>
+      <a class="loginBtn loginBtnOicd" (click)="login('bioid')"><span class="text">BioId</span></a>
+      <a class="socicon-google" (click)="login('google')"><span class="text">Google</span></a>
+      <a class="socicon-facebook" (click)="login('facebook')"><span class="text">Facebook</span></a>
+      <a class="socicon-internet" (click)="login('bioid')"><span class="text">BioId</span></a>
+    </div>
+    <span flex.gt-sm="2 2 40%" fxFlexOrder.gt-sm="3">Alternately, </span>
+    <div fxFlexLayout="row" fxFlex.gt-sm="2 2 50%" fxFlexOrder.gt-sm="5">
+      <button mat-raised-button (click)="register()" color="primary">Registration Form</button>
+      <button mat-raised-button (click)="login()" color="primary">Local Login Form</button>
+    </div>
+  </div>
+  <button mat-raised-button mat-dialog-close color="warn" class="mr-auto">Cancel</button>
+</mat-dialog-content>
+
