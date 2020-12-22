@@ -1,0 +1,69 @@
+// Copyright 2019 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package signed_image_uploads;
+
+option java_package = "jchein.name.grpc.signed_image_uploads.actions.v1";
+
+// A candidate integer for primality testing.
+message CreateSingleSignedUpload {
+    //
+    repeated OptionalUploadFeatureKind activeFeatures = 5;
+    //
+    float autoTagThreshold = 6;
+}
+
+message BeginSignedUploadSeries {
+    //
+    repeated OptionalUploadFeatureKind activeFeatures = 5;
+    //
+    float autoTagThreshold = 6;
+}
+
+message ContinueSignedUploadSeries {
+    string latestPublicId = 1;
+    //
+    repeated OptionalUploadFeatureKind activeFeatures = 5;
+    //
+    float autoTagThreshold = 6;
+}
+
+enum OptionalUploadFeatureKind {
+    COLOR_ANALYSIS = 0;
+    IMAGE_METADATA = 1;
+    QUALITY_ANALYSIS = 2;
+    GOOGLE_TAGGING = 3;
+    IMAGGA_TAGGING = 4;
+    AWS_REK_TAGGING = 5;
+}
+
+message SignedUploadRequestResult {
+    //
+    string publicId = 1;
+    //
+    string queryString = 2;
+    //
+    string uploadUrl = 3;
+    //
+    string signature = 4;
+}
+
+// Service to check primality.
+service ImageUploadSigningService {
+    rpc createSingleSignedUpload(CreateSingleSignedUpload) returns (SignedUploadRequestResult) {}
+    rpc beginSignedUploadSeries(BeginSignedUploadSeries) returns (SignedUploadRequestResult) {}
+    rpc continueSignedUploadSeries(ContinueSignedUploadSeries) returns (SignedUploadRequestResult) {}
+}

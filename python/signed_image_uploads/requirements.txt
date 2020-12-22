@@ -1,0 +1,5 @@
+cloudinary==1.22
+grpcio-tools==1.33.1
+protobuf==3.6.1
+python-dotenv==0.15.0
+
