@@ -1,4 +1,4 @@
-package name.jchein.extension.ulid.reserved;
+package name.jchein.ptf.artlab.extensions.ulid;
 
 public interface Relocatable {
     void updateLocation(long location, int bitsUsed);

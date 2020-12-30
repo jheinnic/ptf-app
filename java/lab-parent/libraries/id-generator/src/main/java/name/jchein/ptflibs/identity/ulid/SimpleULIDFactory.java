@@ -34,9 +34,9 @@
 
 package name.jchein.ptflibs.identity.ulid;
 
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import javax.validation.constraints.NotNull;
 
@@ -53,9 +53,26 @@ public class SimpleULIDFactory implements ULIDFactory
 	{
 		this(
 			Clock.systemUTC(),
-			new RandomBasedRandomBits(
-				new SecureRandom()
+			new AbstractULIDRandomBitsStrategy(
+				0x10L, 4471, (byte) 7, 2, 63, 12
 			)
+		);
+	}
+
+	public SimpleULIDFactory(@NotNull Clock clock)
+	{
+		this(
+			clock,
+			new AbstractULIDRandomBitsStrategy(
+				0x10L, 4471, (byte) 7, 2, 63, 12
+			)
+		);
+	}
+
+	public SimpleULIDFactory(@NotNull ULIDRandomBitsStrategy random)
+	{
+		this(
+			Clock.systemUTC(), random
 		);
 	}
 
@@ -70,17 +87,16 @@ public class SimpleULIDFactory implements ULIDFactory
 	public String nextULIDString()
 	{
 		final StringBuilder builder = new StringBuilder(26);
-		appendULIDString(builder);
+		appendULID(builder);
 		return builder.toString();
 	}
 	
-	public void appendULIDString(StringBuilder builder) {
+	public void appendULID(StringBuilder builder) {
 		Objects.requireNonNull(builder, "builder must not be null!");
-		ULID.internalEncodeTimeHi40Lo40(
-			builder, 
-			this.clock.millis(),
-			this.random.getRandomHi40(),
-			this.random.getRandomLo40());
+		this.random.onBackTick4040((final long hi40, final long lo40) -> {
+			ULID.encodeTimeHi40Lo40(
+				builder, this.clock.millis(), hi40, lo40);
+		});
 	}
 
 //	public String nextULIDPath(char separator)
@@ -101,17 +117,31 @@ public class SimpleULIDFactory implements ULIDFactory
 
 	public ULID altNextULID()
 	{
-		return ULID.fromTimeHi40Lo40(
-			this.clock.millis(),
-			this.random.getRandomHi40(),
-			this.random.getRandomLo40());
+		CompletableFuture<ULID> retVal = new CompletableFuture<>();
+		final long timestamp = this.clock.millis();
+		this.random.onBackTick4040((final long hi40, final long lo40) -> {
+			retVal.complete(
+				ULID.fromTimeHi40Lo40(timestamp, hi40, lo40));
+			});
+		try {
+			return retVal.get();
+		} catch( Exception e ) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public ULID nextULID()
 	{
-		return ULID.fromTimeHi16Lo64(
-			this.clock.millis(),
-			this.random.getRandomHi16(),
-			this.random.getRandomLo64());
+		CompletableFuture<ULID> retVal = new CompletableFuture<>();
+		final long timestamp = this.clock.millis();
+		this.random.onBackTickIntLong((final int hi16, final long lo64) -> {
+			retVal.complete(
+				ULID.fromTimeHi16Lo64(timestamp, hi16, lo64));
+			});
+		try {
+			return retVal.get();
+		} catch( Exception e ) {
+			throw new RuntimeException(e);
+		}
 	}
 }

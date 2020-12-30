@@ -95,29 +95,6 @@ public class ULID implements Comparable<ULID>, Serializable {
 		return this.leastSignificantBits & Constants.LO_RANDOM_40_LSB_MASK;
 	}
 
-	public byte[] toBytes() {
-		final byte[] result = new byte[16];
-		this.toBytes(result);
-		return result;
-	}
-
-	public void toBytes(@Size(min = 16, max = 16) byte[] result) {
-		long interim = mostSignificantBits;
-		for (int i = 7; i > 0; i--) {
-			result[i] = (byte) (interim & Constants.SINGLE_BYTE_MASK);
-			interim >>= Constants.BYTE_BITS;
-		}
-		result[0] = (byte) interim;
-
-		interim = leastSignificantBits;
-		for (int i = 15; i > 8; i--) {
-			result[i] = (byte) (interim & Constants.SINGLE_BYTE_MASK);
-			interim >>= Constants.BYTE_BITS;
-		}
-		result[8] = (byte) interim;
-	}
-
-
 //	public NewULID increment() {
 //		return increment(false);
 //	}
@@ -140,6 +117,60 @@ public class ULID implements Comparable<ULID>, Serializable {
 //		return new NewULID(msb & Constants.TIMESTAMP_MSB_MASK, 0);
 //	}
 
+	public void appendULID(StringBuilder buffer)
+	{
+		Objects.requireNonNull(buffer, "stringBuilder must not be null!");
+		encodeHi64Lo64(
+			buffer, this.mostSignificantBits, this.leastSignificantBits);
+	}
+
+	public void appendULIDAsPath(StringBuilder stringBuilder, String separator) {
+		Objects.requireNonNull(stringBuilder, "stringBuilder must not be null!");
+		Objects.requireNonNull(separator, "separator must not be null!");
+		encodeHi64Lo64AsPath(
+			stringBuilder,
+			separator,
+			this.mostSignificantBits,
+			this.leastSignificantBits);
+	}
+	
+	public byte[] toBytes() {
+		final byte[] result = new byte[16];
+		this.toBytes(result);
+		return result;
+	}
+
+	public void toBytes(@Size(min = 16, max = 16) byte[] result) {
+		long interim = mostSignificantBits;
+		for (int i = 7; i > 0; i--) {
+			result[i] = (byte) (interim & Constants.SINGLE_BYTE_MASK);
+			interim >>= Constants.BYTE_BITS;
+		}
+		result[0] = (byte) interim;
+
+		interim = leastSignificantBits;
+		for (int i = 15; i > 8; i--) {
+			result[i] = (byte) (interim & Constants.SINGLE_BYTE_MASK);
+			interim >>= Constants.BYTE_BITS;
+		}
+		result[8] = (byte) interim;
+	}
+	
+	public String toPathString(String separator) {
+		final StringBuilder buffer = new StringBuilder(26);
+		encodeHi64Lo64AsPath(
+			buffer, separator, this.mostSignificantBits, this.leastSignificantBits);
+		return buffer.toString();
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder buffer = new StringBuilder(26);
+		encodeHi64Lo64(
+			buffer, this.mostSignificantBits, this.leastSignificantBits);
+		return buffer.toString();
+	}
+	
 	@Override
 	public int hashCode() {
 		long hilo = mostSignificantBits ^ leastSignificantBits;
@@ -168,22 +199,9 @@ public class ULID implements Comparable<ULID>, Serializable {
 								: (this.leastSignificantBits > val.leastSignificantBits ? 1 : 0))));
 	}
 
-	@Override
-	public String toString() {
-		StringBuilder buffer = new StringBuilder(26);
-		internalEncodeULID(buffer, this.mostSignificantBits, this.leastSignificantBits);
-		return buffer.toString();
-	}
-
-	public void appendULID(StringBuilder stringBuilder)
-	{
-		Objects.requireNonNull(stringBuilder, "stringBuilder must not be null!");
-		internalEncodeULID(stringBuilder, this.mostSignificantBits, this.leastSignificantBits);
-		
-	}
-	
 	public static ULID parseULIDPath(String ulidPath, String separator) {
-		return parseULID(ulidPath.replaceAll(separator, ""));
+		return parseULID(
+			ulidPath.replaceAll(separator, ""));
 	}
 
 	public static ULID parseULID(String ulidString) {
@@ -226,7 +244,7 @@ public class ULID implements Comparable<ULID>, Serializable {
 		return new ULID(mostSignificantBits, leastSignificantBits);
 	}
 
-	public static ULID fromTimeHi16Lo64(long timestamp, int hiRandom16, long loRandom64) {
+	static ULID fromTimeHi16Lo64(long timestamp, int hiRandom16, long loRandom64) {
 		checkTimestamp(timestamp);
 		if (hiRandom16 != (hiRandom16 & Constants.RANDOM_16_MASK)) {
 			throw new IllegalArgumentException("hiRandom16 overflows its least significant 16 bits");
@@ -239,7 +257,7 @@ public class ULID implements Comparable<ULID>, Serializable {
 		return new ULID(mostSignificantBits, leastSignificantBits);
 	}
 
-	public static ULID fromTimeHi40Lo40(long timestamp, long hiRandom40, long loRandom40) {
+	static ULID fromTimeHi40Lo40(long timestamp, long hiRandom40, long loRandom40) {
 		checkTimestamp(timestamp);
 		if (hiRandom40 != (hiRandom40 & Constants.RANDOM_40_MASK)) {
 			throw new IllegalArgumentException(
@@ -260,33 +278,85 @@ public class ULID implements Comparable<ULID>, Serializable {
 		return new ULID(mostSignificantBits, leastSignificantBits);
 	}
 	
-	public static ULID fromHi64Lo64(long mostSignificantBits, long leastSignificantBits) {
+	static ULID fromHi64Lo64(long mostSignificantBits, long leastSignificantBits) {
 		return new ULID(mostSignificantBits, leastSignificantBits);
 	}
 
 	/*
 	 * http://crockford.com/wrmg/base32.html
 	 */
-	static void internalEncodeTimeHi40Lo40(StringBuilder builder, long timestamp, long randomMsb40, long randomLsb40) {
-		internalEncodeWord(builder, timestamp, 10);
-		internalEncodeWord(builder, randomMsb40, 8);
-		internalEncodeWord(builder, randomLsb40, 8);
-	}
-	
-	static void internalEncodeULID(StringBuilder builder, long most64, long least64) {
+	static void encodeHi64Lo64(StringBuilder builder, long most64, long least64) {
 		builder.append(
 			Constants.SHORT_ENCODING_CHARS[
 			    (int) ((most64 >>> Constants.ULID_TO_TIME_MSB_SHIFT) & Constants.MSB_TIME_CHAR_MASK)
 			]
 		);
-		int nextShift = Constants.ULID_TO_TIME_MSB_SHIFT - Constants.BASE32_CHAR_MASK_BITS;
-		for (; nextShift >= Constants.MSB_BOUNDARY_MASK_BITS; nextShift = nextShift - Constants.BASE32_CHAR_MASK_BITS) {
-    		builder.append(
-    			Constants.ENCODING_CHARS[
-    			    (int) ((most64 >>> nextShift) & Constants.BASE32_CHAR_MASK)
-    			]
-    		);
-		}
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 56) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 51) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 46) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 41) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 36) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 31) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 26) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 21) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 16) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 11) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 6) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((most64 >>> 1) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+//		internalEncodeULIDInnerRun(
+//			builder,
+//			most64,
+//			Constants.ULID_TO_TIME_MSB_SHIFT - Constants.BASE32_CHAR_MASK_BITS,
+//			Constants.MSB_BOUNDARY_MASK_BITS
+//		);
 		builder.append(
 			Constants.BOUNDARY_ENCODING_CHARS[
 	    	    (int) (most64 & Constants.MSB_BOUNDARY_MASK)
@@ -294,19 +364,142 @@ public class ULID implements Comparable<ULID>, Serializable {
                 (int) ((least64 >>> Constants.ULID_TO_LSB_BOUNDARY_SHIFT) & Constants.LSB_BOUNDARY_MASK)
 			]
 		);
-		nextShift = Constants.ULID_TO_LSB_BOUNDARY_SHIFT - Constants.BASE32_CHAR_MASK_BITS;
-		for (; nextShift > 0; nextShift = nextShift - Constants.BASE32_CHAR_MASK_BITS) {
-    		builder.append(
-    			Constants.ENCODING_CHARS[
-    			    (int) ((least64 >>> nextShift) & Constants.BASE32_CHAR_MASK)
-    			]
-    		);
-		}
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 60) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 55) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 50) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 45) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 40) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 35) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 30) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 25) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 20) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 15) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 10) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+    	builder.append(
+    		Constants.ENCODING_CHARS[
+    		    (int) ((least64 >>> 5) & Constants.BASE32_CHAR_MASK)
+    		]
+    	);
+//		internalEncodeULIDInnerRun(
+//			builder,
+//			least64, 
+//			Constants.ULID_TO_LSB_BOUNDARY_SHIFT - Constants.BASE32_CHAR_MASK_BITS, 
+//			5
+//		);
 		builder.append(
 			Constants.ENCODING_CHARS[
 			    (int) (least64 & Constants.BASE32_CHAR_MASK)
 			]
 		);
+	}
+	
+	static void encodeHi64Lo64AsPath(
+		StringBuilder builder, String separator, long most64, long least64
+	) {
+		builder.append(
+			Constants.SHORT_ENCODING_CHARS[
+			    (int) ((most64 >>> Constants.ULID_TO_TIME_MSB_SHIFT) & Constants.MSB_TIME_CHAR_MASK)
+			]
+		);
+		internalEncodeULIDInnerRun(
+			builder, most64,
+			Constants.ULID_TO_TIME_MSB_SHIFT - Constants.BASE32_CHAR_MASK_BITS,
+			41
+		);
+		builder.append(separator);
+		internalEncodeULIDInnerRun(builder, most64, 36, 31);
+		builder.append(separator);
+		internalEncodeULIDInnerRun(builder, most64, 26, 16);
+		builder.append(separator);
+		internalEncodeULIDInnerRun(
+			builder, most64, 11, Constants.MSB_BOUNDARY_MASK_BITS
+		);
+		builder.append(separator);
+		builder.append(
+			Constants.BOUNDARY_ENCODING_CHARS[
+	    	    (int) (most64 & Constants.MSB_BOUNDARY_MASK)
+			][
+                (int) ((least64 >>> Constants.ULID_TO_LSB_BOUNDARY_SHIFT) & Constants.LSB_BOUNDARY_MASK)
+			]
+		);
+		internalEncodeULIDInnerRun(
+			builder, least64, 
+			Constants.ULID_TO_LSB_BOUNDARY_SHIFT - Constants.BASE32_CHAR_MASK_BITS, 
+			30
+		);
+		builder.append(separator);
+		internalEncodeULIDInnerRun(builder, least64, 30, 5);
+		builder.append(
+			Constants.ENCODING_CHARS[
+			    (int) (least64 & Constants.BASE32_CHAR_MASK)
+			]
+		);
+	}
+
+	private static void internalEncodeULIDInnerRun(
+		final StringBuilder builder,
+		final long ulidWord,
+		int nextShift,
+		final int minShift
+	) {
+		while (nextShift >= minShift) {
+    		builder.append(
+    			Constants.ENCODING_CHARS[
+    			    (int) ((ulidWord >>> nextShift) & Constants.BASE32_CHAR_MASK)
+    			]
+    		);
+			nextShift = nextShift - Constants.BASE32_CHAR_MASK_BITS;
+		}
+	}
+	
+	static void encodeTimeHi40Lo40(StringBuilder builder, long timestamp, long randomMsb40, long randomLsb40) {
+		internalEncodeWord(builder, timestamp, 10);
+		internalEncodeWord(builder, randomMsb40, 8);
+		internalEncodeWord(builder, randomLsb40, 8);
 	}
 
 	private static void internalEncodeWord(StringBuilder builder, long value, int count) {
@@ -360,7 +553,7 @@ public class ULID implements Comparable<ULID>, Serializable {
 		if ((timestamp & Constants.TIMESTAMP_OVERFLOW_MASK) != 0) {
 			if (fromClock) {
 				throw new IllegalArgumentException(
-						"ULID does not support timestamps after +10889-08-02T05:31:50.655Z!");
+					"ULID does not support timestamps after +10889-08-02T05:31:50.655Z!");
 			} else {
 				throw new IllegalArgumentException("ulidString must not exceed '7ZZZZZZZZZZZZZZZZZZZZZZZZZ'!");
 			}

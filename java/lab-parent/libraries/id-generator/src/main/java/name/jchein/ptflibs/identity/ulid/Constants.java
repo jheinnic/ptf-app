@@ -1,5 +1,7 @@
 package name.jchein.ptflibs.identity.ulid;
 
+import java.math.BigInteger;
+
 public final class Constants {
 	private Constants() { }
 	
@@ -155,4 +157,31 @@ public final class Constants {
 	static final int ULID_TO_LSB_BOUNDARY_SHIFT = 60;
 	static final int HI_RANDOM_40_MSB_SHIFT = 24;
 	static final int HI_RANDOM_40_LSB_SHIFT = 40;
+	
+	 
+	// Config root
+	static final String CONFIG_PREFIX = "jchptf.idgen";
+	
+	static final int VARIANT_BITS_LEN = 3;
+	static final int VARIANT_BITS_MASK = 0x7;
+	
+	static final int MIN_EPOCH_FIELD_PRIME_BITS = 6;
+	static final int MAX_EPOCH_FIELD_PRIME_BITS = 10;
+	
+	static final int SERIES_BITS_SHIFT = 3;
+//	static final int SERIES_BITS_STEP = 8;
+
+	static final BigInteger LO_40_MASK =
+		BigInteger.valueOf(0x0000_00FF_FFFF_FFFFL);
+	static final BigInteger LO_64_MASK = 
+		BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE);
+	
+	static final long LOCATION_HI_16_MASK = 0xFFFF_0000_0000_0000L;
+	static final long LOCATION_HI_40_MASK = 0xFFFF_FFFF_FF00_0000L;
+	static final long LOCATION_LO_40_MASK = 0x0000_0000_00FF_FFFFL;
+	static final long LOCATION_LO_64_MASK = 0x0000_FFFF_FFFF_FFFFL;
+	
+	static final long BASE_RANDOM_HI_40_MASK = 0xFFFF_FF00_0000_0000L;
+	static final long BASE_RANDOM_LO_40_MASK = 0x0000_00FF_FFFF_FFFFL;
+	static final long BASE_RANDOM_LO_64_MASK = 0xFFFF_FFFF_FFFF_FFFFL;
 }

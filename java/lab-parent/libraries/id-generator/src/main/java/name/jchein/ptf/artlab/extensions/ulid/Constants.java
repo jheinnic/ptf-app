@@ -1,4 +1,4 @@
-package name.jchein.extension.ulid.reserved;
+package name.jchein.ptf.artlab.extensions.ulid;
 
 public final class Constants {
 	private Constants() { }

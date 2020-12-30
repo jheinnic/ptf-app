@@ -34,104 +34,171 @@
 
 package name.jchein.ptflibs.identity.ulid;
 
-import javax.validation.constraints.NotNull;
-import java.security.SecureRandom;
 import java.time.Clock;
-import java.util.Objects;
+
+import javax.validation.constraints.NotNull;
 
 /*
  * https://github.com/ulid/spec
  */
-//@SuppressWarnings("PMD.ShortClassName")
-public class MonotonicULIDFactory extends SimpleULIDFactory
+public class MonotonicULIDFactory implements ULIDFactory
 {
-	protected ULID latestValue;
+	protected long latestTimestamp;
+	protected final Clock clock;
+	protected final ULIDRandomBitsStrategy random;
 
 	public MonotonicULIDFactory()
 	{
 		this(
 			Clock.systemUTC(),
-			new RandomBasedRandomBits(
-				new SecureRandom()
-			),
-			new ULID(0, 0)
+			new AbstractULIDRandomBitsStrategy(
+				0xae729bd4c0L, 8970, (byte) 2, 40, 24, 13
+			)
 		);
 	}
-	
-	public MonotonicULIDFactory(@NotNull Clock clock, @NotNull ULIDRandomBitsStrategy random) {
-		this(clock, random, new ULID(0, 0));
-	}
 
-	public MonotonicULIDFactory(
-		@NotNull Clock clock, @NotNull ULIDRandomBitsStrategy random, @NotNull ULID latestValue
-	) {
-		super(clock, random);
-		Objects.requireNonNull(latestValue, "latestValue must not be null!");
-		this.latestValue = latestValue;
-	}
-
-	public void appendULID(StringBuilder builder)
+	public MonotonicULIDFactory(@NotNull Clock clock)
 	{
-		Objects.requireNonNull(builder, "stringBuilder must not be null!");
-		ULID nextULID = nextULID();
-		ULID.internalEncodeULID(
-			builder,
-			nextULID.getMostSignificantBits(),
-			nextULID.getLeastSignificantBits()
+		this(
+			clock,
+			new AbstractULIDRandomBitsStrategy(
+				0xae729bd4c0L, 8970, (byte) 2, 40, 24, 13
+			)
 		);
+	}
+
+	public MonotonicULIDFactory(@NotNull ULIDRandomBitsStrategy random)
+	{
+		this(
+			Clock.systemUTC(), random
+		);
+	}
+
+	
+	public MonotonicULIDFactory(
+		@NotNull Clock clock, @NotNull ULIDRandomBitsStrategy random
+	) {
+		this.clock = clock;
+		this.random = random;
+		this.latestTimestamp = 0;
+	}
+
+
+	public ULID altNextULID()
+	{
+		long previousTimestamp = this.latestTimestamp;
+		long timestamp = this.clock.millis();
+		ULID[] retVal = new ULID[1];
+		if (timestamp < previousTimestamp) {
+			this.random.onBackTick4040((final long hi40, final long lo40) -> {
+				retVal[0] = ULID.fromTimeHi40Lo40(timestamp, hi40, lo40);
+			});
+		} else if (timestamp == previousTimestamp) {
+			this.random.onSameTick4040((final long hi40, final long lo40) -> {
+				retVal[0] = ULID.fromTimeHi40Lo40(timestamp, hi40, lo40);
+			});
+		} else {
+			this.random.onForwardTick4040((final long hi40, final long lo40) -> {
+				retVal[0] = ULID.fromTimeHi40Lo40(timestamp, hi40, lo40);
+			});
+		}
+
+		this.latestTimestamp = timestamp;
+		
+		try {
+			return retVal[0];
+		} catch( Exception e ) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void appendULID(final StringBuilder builder)
+	{
+		final long timestamp = this.clock.millis();
+		final long previousTimestamp = this.latestTimestamp;
+		if (timestamp < previousTimestamp) {
+			this.random.onBackTick4040((final long hi40, final long lo40) -> {
+				ULID.encodeTimeHi40Lo40(builder, timestamp, hi40, lo40);
+			});
+		} else if (timestamp == previousTimestamp) {
+			this.random.onSameTick4040((final long hi40, final long lo40) -> {
+				ULID.encodeTimeHi40Lo40(builder, timestamp, hi40, lo40);
+			});
+		} else {
+			this.random.onForwardTick4040((final long hi40, final long lo40) -> {
+				ULID.encodeTimeHi40Lo40(builder, timestamp, hi40, lo40);
+			});
+		}
 	}
 
 	public ULID nextULID()
 	{
+		long previousTimestamp = this.latestTimestamp;
 		long timestamp = this.clock.millis();
-		long previousTimestamp = this.latestValue.timestamp();
-		if (timestamp <= previousTimestamp) {
-			long lsBits = this.latestValue.getLeastSignificantBits();
-			long msBits = this.latestValue.getMostSignificantBits();
-
-			if (lsBits != Constants.FULL_WORD_MASK) {
-				this.latestValue = new ULID(msBits, lsBits+1);
-			} else if((msBits & Constants.HI_RANDOM_16_MSB_MASK) != Constants.HI_RANDOM_16_MSB_MASK) {
-				this.latestValue = new ULID(msBits+1, 0);
-			} else {
-				// TODO: Log a warning about overflow!
-				this.latestValue = new ULID(0, 0);
-			}
+		ULID[] retVal = new ULID[1];
+		if (timestamp < previousTimestamp) {
+			// TODO: Treat time < prevTime as time == prevTime within a small
+			//       window of tolerance where (prevTime - time) < tolerance,
+			//       sparing sequence iteration when the interval to recovery
+			//       is brief.
+			// NOTE: We sort of have this already by setting a Clock interface
+			//       tick size...  Maybe disregard this TODO?
+			this.random.onBackTickIntLong((final int hi16, final long lo64) -> {
+				retVal[0] = ULID.fromTimeHi16Lo64(timestamp, hi16, lo64);
+			});
+		} else if (timestamp == previousTimestamp) {
+			this.random.onSameTickIntLong((final int hi16, final long lo64) -> {
+				retVal[0] = ULID.fromTimeHi16Lo64(timestamp, hi16, lo64);
+			});
 		} else {
-			this.latestValue = ULID.fromTimeHi16Lo64(
-				timestamp,
-				this.random.getRandomHi16(),
-				this.random.getRandomLo64()
-			);
+			// This will rewind random bits to the earliest reset point in
+			// their sequence, which is only bumped forward when time has moved
+			// backwards. We can reuse any node bits we do not believe we have
+			// already used with an earlier occurence of present clock time.
+			this.random.onForwardTickIntLong((final int hi16, final long lo64) -> {
+				retVal[0] = ULID.fromTimeHi16Lo64(timestamp, hi16, lo64);
+			});
 		}
+		// If clock has moved forward or not at all, this is intuitive.
+		// If clock has moved backwards, this is Ok because we forced advancement to
+		// the next time series and forced a reset of the reset point.
+		// Note that if we move to other time series due to clock not moving, those
+		// series advancements do NOT push the reset point forward by themselves--that
+		// always requires a temporal backstep.
+		this.latestTimestamp = timestamp;
 		
-		return this.latestValue;
-	}
-
-	public void in(StringBuilder builder)
-	{
-		Objects.requireNonNull(builder, "stringBuilder must not be null!");
-		long timestamp = this.clock.millis();
-		long previousTimestamp = this.latestValue.timestamp();
-		if (timestamp <= previousTimestamp) {
-			long lsBits = this.latestValue.getLeastSignificantBits();
-			long msBits = this.latestValue.getMostSignificantBits();
-
-			if (lsBits != Constants.FULL_WORD_MASK) {
-				ULID.internalEncodeULID(builder, msBits, lsBits + 1);
-			} else if((msBits & Constants.HI_RANDOM_16_MSB_MASK) != Constants.HI_RANDOM_16_MSB_MASK) {
-				ULID.internalEncodeULID(builder, msBits + 1, 0);
-			} else {
-				// TODO: Log a warning about overflow!
-				ULID.internalEncodeULID(builder, 0, 0);
-			}
-		} else {
-			ULID.internalEncodeTimeHi40Lo40(
-				builder,
-				timestamp, 
-				this.random.getRandomHi40(), 
-				this.random.getRandomLo40()
-			);
+		try {
+			return retVal[0];
+		} catch( Exception e ) {
+			throw new RuntimeException(e);
 		}
 	}
+
+//	public void in(StringBuilder builder)
+//	{
+//		Objects.requireNonNull(builder, "stringBuilder must not be null!");
+//		long timestamp = this.clock.millis();
+//		long previousTimestamp = this.latestValue.timestamp();
+//		if (timestamp <= previousTimestamp) {
+//			long lsBits = this.latestValue.getLeastSignificantBits();
+//			long msBits = this.latestValue.getMostSignificantBits();
+//
+//			if (lsBits != Constants.FULL_WORD_MASK) {
+//				ULID.internalEncodeULID(builder, msBits, lsBits + 1);
+//			} else if((msBits & Constants.HI_RANDOM_16_MSB_MASK) != Constants.HI_RANDOM_16_MSB_MASK) {
+//				ULID.internalEncodeULID(builder, msBits + 1, 0);
+//			} else {
+//				// TODO: Log a warning about overflow!
+//				ULID.internalEncodeULID(builder, 0, 0);
+//			}
+//		} else {
+//			ULID.internalEncodeTimeHi40Lo40(
+//				builder,
+//				timestamp, 
+//				this.random.getRandomHi40(), 
+//				this.random.getRandomLo40()
+//			);
+//		}
+//	}
 }

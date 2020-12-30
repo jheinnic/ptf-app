@@ -1,0 +1,65 @@
+package name.jchein.info.examples.demo;
+
+import java.security.SecureRandom;
+import java.time.Clock;
+import java.time.Duration;
+
+import name.jchein.ptf.artlab.extensions.id_generator.zookeeper.IdGenConfig;
+import name.jchein.ptflibs.identity.ulid.MonotonicULIDFactory;
+import name.jchein.ptflibs.identity.ulid.RandomRandomness;
+import name.jchein.ptflibs.identity.ulid.ULID;
+
+public class TryIt {
+
+	public static void main(String[] args) {
+		final RandomRandomness trueRandomness =
+			new RandomRandomness(new SecureRandom());
+		final MockRandomness falseRandomness =
+			new MockRandomness(0xFFFF, 0xFFFFFFFFFFL, 0xFFFFFFFFFFL, 0xFFFFFFFFFFFFFFFFL);
+		final RelocatableRandomness randomness =
+			new RelocatableRandomness(falseRandomness);
+		final Clock systemClock =
+			Clock.systemUTC();
+		final Clock tickClock =
+			Clock.tick(systemClock, Duration.ofMillis(2));
+		final MonotonicULIDFactory simpleStatelessFactory =
+				new MonotonicULIDFactory(tickClock, randomness);
+//		final long RESERVED_ID = 45968335363227L;
+//		final long RESERVED_ID = 100L;
+		final long RESERVED_ID = 0x9dcc3bea5560L;
+		IdGenConfig currentConfig = new IdGenConfig(280651248517201L, 3701, RESERVED_ID, false);
+		randomness.updateLocation(RESERVED_ID, 48);
+		ULID foo = simpleStatelessFactory.nextULID();
+		String fooStr = foo.toString();
+		System.out.println(fooStr);
+		ULID wingFoo = ULID.parseULID(fooStr);
+		System.out.println(simpleStatelessFactory.nextULIDString());
+		System.out.println(foo.compareTo(wingFoo));
+		System.out.println(simpleStatelessFactory.nextULIDString());
+		fooStr = simpleStatelessFactory.nextULIDString();
+		System.out.println(fooStr);
+		ULID wingFoo3 = ULID.parseULID(fooStr);
+		System.out.println("Compare three");
+		System.out.println(foo.toString());
+		System.out.println(wingFoo.toString());
+		System.out.println(wingFoo3.toString());
+		System.out.println(foo.compareTo(wingFoo));
+		System.out.println(foo.compareTo(wingFoo3));
+		System.out.println(wingFoo.compareTo(foo));
+		System.out.println(wingFoo.compareTo(wingFoo3));
+		System.out.println(wingFoo3.compareTo(foo));
+		System.out.println(wingFoo3.compareTo(wingFoo));
+		
+		final ULID[] oneHundred = new ULID[20];
+		for (int jj = 0; jj < 64; jj++) {
+			for (int ii = 0; ii < 20; ii++) {
+				oneHundred[ii] = simpleStatelessFactory.nextULID();
+			}
+			System.out.println( "\nIteration #" + (jj+1) + ", g = " + currentConfig.getI() + " :: ");
+			for (int ii = 0; ii < 20; ii++) {
+				System.out.println( oneHundred[ii].toString() );
+			}
+		}
+		System.out.println("DONE!");
+	}
+}
