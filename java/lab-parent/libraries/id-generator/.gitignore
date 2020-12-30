@@ -1,0 +1,5 @@
+temp/*
+.cache-main
+.cache-tests
+**/*._alacs
+**/*._avaj
