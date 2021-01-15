@@ -1,4 +1,4 @@
-package name.jchein.ptf.artlab.extensions.id_generator.zookeeper
+package name.jchein.ptf.artlab.extensions.zookeeper
 
 import org.slf4j.LoggerFactory
 import org.slf4j.Logger

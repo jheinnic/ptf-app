@@ -4,8 +4,8 @@ import java.math.BigInteger;
 
 import org.hibernate.validator.constraints.Range;
 
-import name.jchein.ptflibs.math.field.ForkResetSpliteratorOfLong;
-import name.jchein.ptflibs.math.field.PrimePowerField;
+import name.jchein.ptflibs.math.field.LongGroupGeneratorSpliterator;
+import name.jchein.ptflibs.math.field.PrimePowerGroup;
 
 public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 	private final int epochShift;
@@ -13,10 +13,10 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 	private final long seriesMask;
 	private final long seriesFlowLimit;
 
-	private final PrimePowerField epochSource;
+	private final PrimePowerGroup epochSource;
 	private final BigInteger constantBits;
 
-	private ForkResetSpliteratorOfLong activeEpochIterator;
+	private LongGroupGeneratorSpliterator activeEpochIterator;
 	private BigInteger activeRandom;
 	private BigInteger activeEpoch;
 	private long activeSeries;
@@ -57,7 +57,7 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 		this.epochMask = (0x1L << epochBits) - 1;
 		this.epochShift = nodeShift - epochBits;
 		this.seriesFlowLimit = (initialSeries == 0) ? this.seriesMask : (initialSeries - 1);
-		this.epochSource = PrimePowerField.generateField(
+		this.epochSource = PrimePowerGroup.findGroupByCharacteristic(
 			epochBits,
 			Constants.MIN_EPOCH_FIELD_PRIME_BITS,
 			Constants.MAX_EPOCH_FIELD_PRIME_BITS

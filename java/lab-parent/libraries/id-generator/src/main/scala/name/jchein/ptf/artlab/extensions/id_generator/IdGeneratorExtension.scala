@@ -21,8 +21,13 @@ import org.apache.curator.framework.recipes.leader.{ LeaderLatch, LeaderLatchLis
 import org.apache.curator.framework.state.{ ConnectionState, ConnectionStateListener }
 import org.apache.zookeeper.KeeperException.{ NoNodeException, NodeExistsException }
 
-import name.jchein.ptf.artlab.extensions.id_generator.zookeeper.ZookeeperClient
 import java.util.concurrent.TimeUnit
+import akka.actor.typed.scaladsl.Routers
+import akka.actor.typed.Dispatchers
+import akka.actor.typed.DispatcherSelector
+import akka.actor.typed.receptionist.Receptionist
+import name.jchein.ptf.artlab.extensions.zookeeper.ZookeeperClient
+import name.jchein.ptf.artlab.extensions.id_generator.zookeeper.ZookeeperULIDAuthority
 
 object IdGeneratorExtension extends ExtensionId[IdGeneratorExtension] with Extension {
 
@@ -33,34 +38,53 @@ object IdGeneratorExtension extends ExtensionId[IdGeneratorExtension] with Exten
 }
 
 class IdGeneratorExtension(system: ActorSystem[_]) extends Extension {
-  val settings = new IdGeneratorSettings(system)
+  val settings: IdGeneratorSettings = IdGeneratorSettings(system)
 
-  val zkActorRef = system.systemActorOf(
-    Behaviors.supervise(
-      Behaviors.setup[ZookeeperClient.Request](
-        { context: ActorContext[ZookeeperClient.Request] =>
-          context.log.info("In Zookeeper actor setup handler")
-          ZookeeperClient(context, settings) }
-      )
-    ).onFailure(
-      SupervisorStrategy.restartWithBackoff(
-        minBackoff = FiniteDuration(2, TimeUnit.SECONDS),
-        maxBackoff = FiniteDuration(5, TimeUnit.MINUTES),
-        randomFactor = 0.2
-      )
-    ),
-    "idGenZkClient",
-    ActorTags(
-      Set("IdGenerator", "Zookeeeper")
-    ).withDispatcherFromConfig(Constants.ZK_BLOCKING_DISPATCHER_NAME)
-  );
-  system.systemActorOf(
-    Behaviors.setup(
-      { context: ActorContext[IdGenerator.Message] => IdGenerator(settings, zkActorRef) }
-    ),
+  // make sure the workers are restarted if they fail
+  settings.sourceVariants.forEach{
+    sourceConfig: IdGeneratorSettings.SourceVariantConfigSettings[_] =>
+      sourceConfig match {
+        case zkConfig: IdGeneratorSettings.ZookeeperLeaseConfigSettings => {
+          val sourceRef: ActorRef[ZookeeperULIDAuthority.Message] = system.systemActorOf(
+            Behaviors.supervise(
+              ZookeeperULIDAuthority(zkConfig)
+            ).onFailure[Exception](SupervisorStrategy.restart),
+            zkConfig.serviceKey.id,
+            ActorTags(
+              Set("IdGenerator", "ServiceFacade", "Pool")
+            ).withDispatcherDefault
+          )
+          system.receptionist ! Receptionist.Register(
+            zkConfig.serviceKey, sourceRef)
+        }
+        case secRandConfig: IdGeneratorSettings.SecureRandomConfigSettings => {
+          val sourceRef: ActorRef[SecureRandomULIDAuthority.Message] = system.systemActorOf(
+            Behaviors.supervise(
+              SecureRandomULIDAuthority(secRandConfig)
+            ).onFailure[Exception](SupervisorStrategy.restart),
+            secRandConfig.serviceKey.id,
+            ActorTags(
+              Set("IdGenerator", "ServiceFacade", "Pool")
+            ).withDispatcherDefault
+          )
+          system.receptionist ! Receptionist.Register(
+            sourceConfig.serviceKey, sourceRef)
+        }
+      }
+    }
+
+  val idGenPool: ActorRef[IdGenerator.Request] = system.systemActorOf(
+    Routers.pool(poolSize = settings.threadCount)(
+      Behaviors.supervise(
+        IdGenerator(settings)
+      ).onFailure[Exception](SupervisorStrategy.restart)
+    ).withRouteeProps(DispatcherSelector.defaultDispatcher())
+      .withRoundRobinRouting(),
     "idGenAppSvc",
     ActorTags(
-      Set("IdGenerator", "ServiceFacade")
+      Set("IdGenerator", "ServiceFacade", "Pool")
     ).withDispatcherDefault
   );
+  
+  system.receptionist ! Receptionist.Register(IdGenerator.Key, idGenPool)
 }

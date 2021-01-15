@@ -4,14 +4,14 @@ import java.math.BigInteger;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 
-class BigIntegerPrimePowerFieldSpliterator implements ForkResetSpliteratorOfBigInteger {
+class BigBigIntGroupGeneratorSequence implements BigIntGroupGeneratorSpliterator {
 	final BigInteger g;
     final BigInteger pn;
     BigInteger nextPower;
     final BigInteger resetPower;
     final BigInteger finalPower;
 
-    BigIntegerPrimePowerFieldSpliterator(final BigInteger pn, final BigInteger p, final BigInteger g) {
+    BigBigIntGroupGeneratorSequence(final BigInteger pn, final BigInteger p, final BigInteger g) {
 		this.g = g;
 		this.pn = pn;
 		this.nextPower = BigInteger.ONE.add(BigInteger.ONE);
@@ -19,8 +19,8 @@ class BigIntegerPrimePowerFieldSpliterator implements ForkResetSpliteratorOfBigI
 		this.finalPower = pn.subtract(p).subtract(this.nextPower);
 	}
 	
-	private BigIntegerPrimePowerFieldSpliterator(
-		final BigIntegerPrimePowerFieldSpliterator origin, final boolean isReset
+	private BigBigIntGroupGeneratorSequence(
+		final BigBigIntGroupGeneratorSequence origin, final boolean isReset
 	) {
 		this.g = origin.g;
 		this.pn = origin.pn;
@@ -30,7 +30,7 @@ class BigIntegerPrimePowerFieldSpliterator implements ForkResetSpliteratorOfBigI
 	}
 
     @Override
-    public BigIntegerPrimePowerFieldSpliterator trySplit() {
+    public BigBigIntGroupGeneratorSequence trySplit() {
     	return null;
     }
 
@@ -73,11 +73,11 @@ class BigIntegerPrimePowerFieldSpliterator implements ForkResetSpliteratorOfBigI
     }
     
     @Override
-    public BigIntegerPrimePowerFieldSpliterator fork() {
-    	return new BigIntegerPrimePowerFieldSpliterator(this, false);
+    public BigBigIntGroupGeneratorSequence fork() {
+    	return new BigBigIntGroupGeneratorSequence(this, false);
     }
     
     @Override
-    public BigIntegerPrimePowerFieldSpliterator reset() {
-    	return new BigIntegerPrimePowerFieldSpliterator(this, true);
+    public BigBigIntGroupGeneratorSequence reset() {
+    	return new BigBigIntGroupGeneratorSequence(this, true);
     }}

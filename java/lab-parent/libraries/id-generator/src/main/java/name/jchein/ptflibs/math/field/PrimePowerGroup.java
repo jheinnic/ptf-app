@@ -5,22 +5,22 @@ import java.security.SecureRandom;
 import java.util.Objects;
 import java.util.Random;
 
-public final class PrimePowerField {
-	final int n;
+public final class PrimePowerGroup {
+	final int exp;
 	final BigInteger p;
 	final BigInteger pn;
 	
-	private PrimePowerField(final BigInteger p, final int n) {
+	private PrimePowerGroup(final BigInteger p, final int exp) {
 		this.p = p;
-		this.n = n;
-	    this.pn = p.pow(n);
+		this.exp = exp;
+	    this.pn = p.pow(exp);
 	}
 	
-	public static PrimePowerField getField(BigInteger p, int power) {
-		return new PrimePowerField(p, power);
+	public static PrimePowerGroup getGroupByPrimePower(BigInteger p, int exp) {
+		return new PrimePowerGroup(p, exp);
 	}
 
-	public static PrimePowerField generateField(
+	public static PrimePowerGroup findGroupByCharacteristic(
 		final int maxElementBits, final int minPrimeBits, final int maxPrimeBits
 	) {
 		if (minPrimeBits > maxPrimeBits) {
@@ -63,7 +63,8 @@ public final class PrimePowerField {
 			}
 			nextPrimeBits += 1;
 		}
-		PrimePowerField retVal = new PrimePowerField(bestPrime, bestExp);
+		PrimePowerGroup retVal =
+			new PrimePowerGroup(bestPrime, bestExp);
 		System.out.println(
 			String.format(
 				"Selected prime <%s> with <%d> bits raised to <%d> for <%d> of <%d> target bits, within <%s>",
@@ -72,10 +73,37 @@ public final class PrimePowerField {
 				maxElementBits, bestDist
 			)
 		);
+
 		return retVal;
 	}
 
-	public ForkResetSpliteratorOfLong findBasePrimeGenerator() {
+	public boolean verifyBasePrimeGenerator(final BigInteger g) {
+		Objects.requireNonNull(g, "Generator must be non-null and positive");
+		if (g.signum() != 1) {
+			throw new IllegalArgumentException("g must be a positive value");
+		}
+		if (p.subtract(g).signum() != 1) {
+			throw new IllegalArgumentException("g must be smaller than p");
+		}
+		return BigInteger.ONE.equals(
+			g.modPow(this.p.subtract(BigInteger.ONE), this.p)
+		);
+//		BigInteger counter = BigInteger.valueOf(2);
+//		BigInteger latest = g;
+//		while(! BigInteger.ONE.equals(latest) && ! this.p.equals(counter)) {
+//			latest = g.modPow(counter, p);
+//			counter = counter.add(BigInteger.ONE);
+//		}
+//		System.out.println(
+//			String.format(
+//				"Stopped with p = <%s>, g = <%s>, counter = <%s>, latest = <%s>",
+//				this.p, g, counter, latest
+//			)
+//		);
+//		return this.p.equals(counter);
+	}
+
+	public LongGroupGeneratorSpliterator findBasePrimeGenerator() {
 		BigInteger g = this.p.shiftRight(1);
 		while((g.signum() == 1) && ! this.verifyBasePrimeGenerator(g)) {
 			g = g.subtract(BigInteger.ONE);
@@ -93,38 +121,23 @@ public final class PrimePowerField {
 
 		}
 
-		return streamForGenerator(g);
-	}
-	
-	public ForkResetSpliteratorOfLong getPowerPrimeSequence(final BigInteger g) {
-//		if (this.verifyBasePrimeGenerator(g)) {
-		return streamForGenerator(g);
-//		}
-//		throw new IllegalArgumentException(
-//			String.format("<%s> is not a generator for <%s>", g, this.p));
+		return this.getPowerPrimeSequence(g, BigInteger.ONE, true);
 	}
 
-	boolean verifyBasePrimeGenerator(final BigInteger g) {
-		Objects.requireNonNull(g, "Generator must be non-null and positive");
-		if (g.signum() != 1) {
-			throw new IllegalArgumentException("g must be a positive value");
-		}
-		if (p.subtract(g).signum() != 1) {
-			throw new IllegalArgumentException("g must be smaller than p");
-		}
-		BigInteger counter = BigInteger.valueOf(2);
-		BigInteger latest = g;
-		while(! BigInteger.ONE.equals(latest) && ! this.p.equals(counter)) {
-			latest = g.modPow(counter, p);
-			counter = counter.add(BigInteger.ONE);
-		}
-//		System.out.println(
-//			String.format(
-//				"Stopped with p = <%s>, g = <%s>, counter = <%s>, latest = <%s>",
-//				this.p, g, counter, latest
-//			)
-//		);
-		return this.p.equals(counter);
+	public LongGroupGeneratorSpliterator getPowerPrimeSequence(final BigInteger g) {
+		return this.getPowerPrimeSequence(g, BigInteger.ONE, false);
+	}
+
+	public LongGroupGeneratorSpliterator getPowerPrimeSequence(
+		final BigInteger g, final BigInteger exp
+	) {
+		return this.getPowerPrimeSequence(g, exp, true);
+	}
+
+	public LongGroupGeneratorSpliterator getPowerPrimeSequence(
+		final BigInteger g, boolean trustGGeneratesP
+	) {
+		return this.getPowerPrimeSequence(g, BigInteger.ONE, trustGGeneratesP);
 	}
 
 	/**
@@ -137,23 +150,34 @@ public final class PrimePowerField {
 	 * @param n
 	 * @return
 	 */
-	ForkResetSpliteratorOfLong streamForGenerator(BigInteger g) {
+	public LongGroupGeneratorSpliterator getPowerPrimeSequence(
+		final BigInteger g, final BigInteger exp, boolean trustGGeneratesP
+	) {
+		if (! (trustGGeneratesP || this.verifyBasePrimeGenerator(g))) {
+			throw new IllegalArgumentException(
+				String.format("<%s> is not a generator for <%s>", g, this.p));
+		}
+
 		final int pnBits = this.pn.bitLength();
 		if (pnBits > 63) {
 			throw new IllegalArgumentException(
 				"Power of prime cannot exceed 64 bits in length for a LongStream"
 			);
 		}
-		final int multBits = this.pn.subtract(BigInteger.ONE).multiply(g).bitLength();
+		final int multBits = this.pn.subtract(BigInteger.ONE)
+			.multiply(g)
+			.bitLength();
 
-        final ForkResetSpliteratorOfLong iterator;
+        final LongGroupGeneratorSpliterator iterator;
 		if (multBits <= 63) {
-	        iterator = new SmallPrimePowerFieldSpliterator(
-	        	this.pn.longValueExact(),
-	        	this.p.longValueExact(), 
-	        	g.longValueExact());
+	        iterator = new PrimitiveGroupGeneratorSequence(
+	        		this.pn.longValueExact(),
+	        		this.p.longValueExact(), 
+	        		g.longValueExact(),
+	        		exp.longValueExact());
 		} else {
-	        iterator = new LargePrimePowerFieldSpliterator(this.pn, this.p, g);
+	        iterator = new BigLongGroupGeneratorSequence(
+	        		this.pn, this.p, g, exp);
 		}
 
 	    return iterator;

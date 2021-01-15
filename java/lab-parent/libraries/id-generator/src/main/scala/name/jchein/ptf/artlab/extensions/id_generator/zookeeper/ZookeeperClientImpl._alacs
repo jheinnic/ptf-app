@@ -34,10 +34,11 @@ import name.jchein.ptf.artlab.extensions.id_generator.IdGeneratorSettings
 import org.apache.curator.x.async.modeled.versioned.VersionedModeledFramework
 import org.apache.curator.x.async.modeled.versioned.Versioned
 import java.util.Calendar
+import name.jchein.ptf.artlab.extensions.id_generator.zookeeper.NodeSequenceModel
 
 
 class ZookeeperClientImpl(
-	context: ActorContext[ZookeeperClient.Request],
+	context: ActorContext[ZookeeperClient.Message],
 	val settings: IdGeneratorSettings,
 ) extends AbstractBehavior(context) with ZkClientWatcher {
 	private[zookeeper] object IdReservationPhase extends Enumeration {
@@ -47,6 +48,37 @@ class ZookeeperClientImpl(
 		val RESOLVING_CONFLICT  = Value("ResolvingConflict");
 		val GROUP_ENROLLMENT = Value("GroupEnrollment");
 		val WAITING_TO_ABORT = Value("WaitingToAbort");
+	}
+
+	/**
+	 * State machine positions for individual lease tracking.
+	 * 
+	 * States are one of two varieties:
+	 * -- Semi-stable states indicate no Zookeeper API call has a
+	 *    pending asynchronous return expected.  They have an
+	 *    associated timer value (may be zero)
+	 */
+	private[zookeeper] object ULIDClaimLifecycleStage extends Enumeration {
+		type IdReservationPhase = Value;
+
+		// Initial state with no pre-existing lease to verify.
+		val UNALLOCATED = Value("Unallocated")
+		// Leadership was acquired and a lease node update is
+		// in flight that includes a node ID lease for this claim.
+		val ALLOCATE_IN_FLIGHT = Value("AllocateInFlight");
+		// Node ID claim update was successful, now this is recording
+		// the Persistent TTL ZNode tracking its expiration before
+		// passing it back as activated.
+		val REGISTER_IN_FLIGHT = Value("RegisterInFlight");
+		// Initial state with a pre-existing lease to verify.
+		val UNVERIFIED = Value("Unverified")
+		val VERIFY_IN_FLIGHT = Value("VerifyInFlight");
+		val CURRENT = Value("Current")
+		val STALE = Value("Stale")
+		val REFRESH_IN_FLIGHT = Value("RefreshInFlight")
+		val ROTATE_IN_FLIGHT = Value("RotateInFlight")
+		val EXPIRED = Value("Expired")
+		val UNREGISTERED = Value("Unregistered")
 	}
 
 	private[zookeeper] sealed trait GeneratorIdClaimState {
@@ -105,15 +137,16 @@ class ZookeeperClientImpl(
 
 	private[zookeeper] case class State(
 		val curatorClient: AsyncCuratorFramework,
-		val genIdModelClient: ModeledFramework[IdGenConfig],
-		val versionedModelClient: VersionedModeledFramework[IdGenConfig],
+		val nodeSequenceModelClient: ModeledFramework[NodeSequenceModel],
+		val variantConfigModelClient: ModeledFramework[VariantConfigModel],
+		val versionedModelClient: VersionedModeledFramework[NodeSequenceModel],
 		val genClaimsSeq: PSequence[GeneratorIdClaimState] = TreePVector.empty(),
 		val genClaimsByActorRef: PMap[ActorRef[ZookeeperEvents.Event], GeneratorIdClaimState] = HashTreePMap.empty(),
 		val genClaimsById: PMap[Long, GeneratorIdClaimState] = HashTreePMap.empty(),
 		val leaderLatch: Optional[LeaderLatch] = Optional.empty(),
 		val idGenConfigWatch: Optional[CuratorWatcher] = Optional.empty(),
-		val idGenConfigModel: Optional[Versioned[IdGenConfig]] = Optional.empty(),
-		val pendingIdClaimProposal: Optional[AsyncResult[IdGenConfig]] = Optional.empty(),
+		val idGenConfigModel: Optional[Versioned[NodeSequenceModel]] = Optional.empty(),
+		val pendingIdClaimProposal: Optional[AsyncResult[NodeSequenceModel]] = Optional.empty(),
 		val pendingProposalNewIds: PSequence[Long] = TreePVector.empty()
 	) {
 		
@@ -266,17 +299,17 @@ class ZookeeperClientImpl(
 				case ZkInternalProtocol.ZkAcquiredLeadership() =>
 					if (currentState.hasProposedClaims()) {
 						AsyncResult.of(
-								currentState.genIdModelClient.readAsZNode()
+								currentState.nodeSequenceModelClient.readAsZNode()
 								).thenAccept { znode =>
 								if (znode.getException.isPresent) {
 									context.self ! new ZkInternalProtocol.ZkGenStateLoadFailure(znode.getException.get)
 								}
-								currentState.genIdModelClient.set(
+								currentState.nodeSequenceModelClient.set(
 										znode.getValue.get.model, znode.getRawValue.stat.getVersion)
 						}
 					}
 					Behaviors.same
-				case ZkInternalProtocol.ZkGenStateLoadSuccess(znode: ZNode[IdGenConfig]) =>
+				case ZkInternalProtocol.ZkGenStateLoadSuccess(znode: ZNode[NodeSequenceModel]) =>
 					Behaviors.same
 				case ZkInternalProtocol.ZkGenStateLoadFailure(throwable: Throwable) =>
 					Behaviors.same
@@ -310,10 +343,11 @@ class ZookeeperClientImpl(
 	context.log.info("Creating Zookeeper Client from thread {Thread.currentThread()}")
 
 	val curatorClient = AkkaCuratorClient(settings)
-	val modelClient = IdGenModelClient(curatorClient, settings)
-	val versionedClient = modelClient.versioned()
-	var currentState: State = State(curatorClient, modelClient, versionedClient)
 	var currentBehavior: Behavior[ZookeeperClient.Request] = disconnected
+	val nodeSeqClient = NodeSequenceModel(curatorClient, settings, 1) 
+	val variantConfigClient = VariantConfigModel(curatorClient, settings, 1)
+	val versionedClient = nodeSeqClient.versioned()
+	var currentState: State = State(curatorClient, nodeSeqClient, variantConfigClient, versionedClient)
 
 	val connectStateListener = new ConnectionStateListener {
 		override def stateChanged(client: CuratorFramework, newState: ConnectionState): Unit = 
@@ -421,3 +455,38 @@ trait ZkClientWatcher extends Watcher { this: ZookeeperClientImpl =>
 }
 }
 
+
+
+/*
+Unused
+//		  claimSubscriberBehavior orElse {
+//				case ZookeeperClient.RunClaimMaintenance() => 
+//					val myId: String = context.system.address.toString
+//					val latch = new LeaderLatch(
+//							currentState.curatorClient.unwrap(), settings.ZK_ZNODE, myId)
+//					latch.addListener(leadershipListener)
+//					changeState(
+//						currentState.copy(
+//							leaderLatch = Optional.of(latch)
+//						)
+//					)
+//				case ZookeeperClient.ZkAcquiredLeadership() =>
+//					if (currentState.hasProposedClaims()) {
+//						AsyncResult.of(
+//								currentState.nodeSequenceModelClient.readAsZNode()
+//								).thenAccept { znode =>
+//								if (znode.getException.isPresent) {
+//									context.self ! new ZookeeperClient.ZkGenStateLoadFailure(znode.getException.get)
+//								}
+//								currentState.nodeSequenceModelClient.set(
+//										znode.getValue.get.model, znode.getRawValue.stat.getVersion)
+//						}
+//					}
+//					Behaviors.same
+//				case ZookeeperClient.ZkGenStateLoadSuccess(znode: ZNode[NodeSequenceModel]) =>
+//					Behaviors.same
+//				case ZookeeperClient.ZkGenStateLoadFailure(throwable: Throwable) =>
+//					Behaviors.same
+////				case ZookeeperClient.ZkAcquiredLeadership() =>
+////					Behaviors.same
+* */

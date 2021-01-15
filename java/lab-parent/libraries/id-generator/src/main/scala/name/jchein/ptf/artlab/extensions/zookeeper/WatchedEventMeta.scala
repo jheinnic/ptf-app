@@ -1,9 +1,7 @@
-package name.jchein.ptf.artlab.extensions.id_generator.zookeeper
+package name.jchein.ptf.artlab.extensions.zookeeper
 
 import org.apache.zookeeper.WatchedEvent
 import org.apache.zookeeper.Watcher.Event.EventType
-import org.apache.zookeeper.Watcher
-import org.apache.zookeeper.Watcher.Event.KeeperState
 
 /**
   * A rich wrapper for the [[org.apache.zookeeper.WatchedEvent]]
