@@ -1,0 +1,16 @@
+matplotlib~=3.3.1
+scikit-learn~=0.23.2
+scikit-image~=0.17.2
+scipy~=1.5.2
+numpy~=1.19.1
+seaborn
+pandas
+opencv-python~=4.2.0.34
+opencv-python-inference-engine
+imutils~=0.5.3
+kiwisolver
+click==7.1.2
+python_xmp_toolkit==2.0.1
+pycloudinary==1.22.0
+certifi==1.15.0
+urllib3==1.25.10

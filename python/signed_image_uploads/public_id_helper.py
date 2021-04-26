@@ -7,8 +7,6 @@ from typing import Tuple
 from base64 import b32decode, b32encode
 from uuid import getnode, uuid1, UUID
 
-from .typez import IPublicIdHelper
-
 MAX_CLOCK_SEQ = math.pow(2, 14) - 1
 MAX_CHUNK_RESERVE = 1536
 CLOCK_SEQ_ROTATE = MAX_CLOCK_SEQ - MAX_CHUNK_RESERVE
@@ -41,14 +39,22 @@ PARSE_URL_PATTERN = re.compile(
         W('-', [8, 8]),
     ))
 )
+
+PARSE_TEST_DIR = re.compile(
+    W('', [4, 2, 2, 4, 6, 6])
+)
+PARSE_TEST_URL = re.compile(
+    W('', [6, 6, 6, 6])
+)
         
     
 class IdFormat(Enum):
     PATH = 0;
     URL_TOKEN = 1;
+    UUID = 2;
 
 
-class PublicIdHelper(IPublicIdHelper):
+class PublicIdHelper():
     def __init__(self, node_id: int = getnode()):
         self._node_id = node_id & 0xffffffffffff
         self._clock_seq = round(random.uniform(0, CLOCK_SEQ_ROTATE))
@@ -93,16 +99,23 @@ class PublicIdHelper(IPublicIdHelper):
 
     @classmethod
     def _uuid_to_public_id(cls, src_uuid: UUID, fmt: IdFormat) -> str:
-        words = [b32encode(src_uuid.bytes_le[x:(x+5)]).decode('utf8') for x in (0, 6, 11)]
-        pads = [str((src_uuid.bytes_le[5] >> x) & 0x3) for x in (0, 2, 4, 6)]
-        dirs = DIR_SPLIT_PATTERN.fullmatch(words[0]).groups()
-        dirs = [dirs[x] + pads[x] for x in range(3, -1, -1)]
+        all_bits = src_uuid.int
+        time_hi  = ((all_bits >> 64) & 0x0fff) << 48
+        time_mid = ((all_bits >> 80) & 0xffff) << 32
+        time_part = time_hi + time_mid + (all_bits >> 96)
+        node_part = all_bits & 0xffffffffffff
+        clock = (all_bits >> 48) & 0x3ff
+        nib = str((all_bits >> 60) & 0x3)
+        base_bytes = (
+            (time_part << 60) + (node_part << 12) + clock
+        ).to_bytes(15, 'big')
+        b32_str = b32encode(base_bytes).decode('utf8')
         if fmt == IdFormat.PATH:
-            public_id = '/'.join((*dirs, words[2], words[1]))
+            dirs = PARSE_TEST_DIR.fullmatch(b32_str).groups()
+            public_id = '/'.join((*dirs[0:5], dirs[5] + nib))
         elif fmt == IdFormat.URL_TOKEN:
-            public_id = '-'.join((
-                ''.join(dirs[0:2]), ''.join(dirs[2:4]), words[2], words[1]
-            ))
+            dirs = PARSE_TEST_URL.fullmatch(b32_str).groups()
+            public_id = '-'.join((dirs[0], dirs[1], dirs[2], dirs[3] + nib))
         else:
             raise RuntimeError(f'{format} is not a recognized Id token format')
         return public_id

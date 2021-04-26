@@ -18,52 +18,61 @@ package signed_image_uploads;
 
 option java_package = "jchein.name.grpc.signed_image_uploads.actions.v1";
 
-// A candidate integer for primality testing.
-message CreateSingleSignedUpload {
-    //
-    repeated OptionalUploadFeatureKind activeFeatures = 5;
-    //
-    float autoTagThreshold = 6;
+message CreateSignedUploadSingleRequest {
+    repeated OptionalUploadFeature options = 1;
 }
 
-message BeginSignedUploadSeries {
-    //
-    repeated OptionalUploadFeatureKind activeFeatures = 5;
-    //
-    float autoTagThreshold = 6;
+message CreateSignedUploadBatchRequest {
+    repeated OptionalUploadFeature options = 1;
+    uint32 totalCount = 2;
 }
 
-message ContinueSignedUploadSeries {
-    string latestPublicId = 1;
-    //
-    repeated OptionalUploadFeatureKind activeFeatures = 5;
-    //
-    float autoTagThreshold = 6;
+message CreateSignedUploadCursorRequest {
+    repeated OptionalUploadFeature options = 1;
+    uint32 totalCount = 2;
+    uint32 fetchCount = 3;
 }
 
-enum OptionalUploadFeatureKind {
+message ContinueSignedUploadCursorRequest {
+    string cursorToken = 1;
+}
+
+enum FlaggedOptionalFeature {
     COLOR_ANALYSIS = 0;
     IMAGE_METADATA = 1;
     QUALITY_ANALYSIS = 2;
-    GOOGLE_TAGGING = 3;
-    IMAGGA_TAGGING = 4;
-    AWS_REK_TAGGING = 5;
 }
 
-message SignedUploadRequestResult {
-    //
+message AutoTaggingOptionalFeature {
+    float autoTagThreshold = 1;
+    bool googleTagging = 2;
+    bool imaggaTagging = 3;
+    bool awsRekTagging = 4;
+}
+
+message OptionalUploadFeature {
+    oneof featureKind {
+        FlaggedOptionalFeature flag = 1;
+        AutoTaggingOptionalFeature autoTag = 2;
+    }
+}
+
+message SignedUploadSingleReply {
     string publicId = 1;
     //
     string queryString = 2;
     //
     string uploadUrl = 3;
-    //
-    string signature = 4;
 }
 
-// Service to check primality.
+message SignedUploadCursorReply {
+    string cursorToken = 1;
+}
+
+// Service for retrieving signed image upload URLs
 service ImageUploadSigningService {
-    rpc createSingleSignedUpload(CreateSingleSignedUpload) returns (SignedUploadRequestResult) {}
-    rpc beginSignedUploadSeries(BeginSignedUploadSeries) returns (SignedUploadRequestResult) {}
-    rpc continueSignedUploadSeries(ContinueSignedUploadSeries) returns (SignedUploadRequestResult) {}
+    rpc createSignedUpload(CreateSignedUploadSingleRequest) returns (SignedUploadSingleReply) {}
+    rpc createSignedUploadBatch(CreateSignedUploadBatchRequest) returns (stream SignedUploadSingleReply) {}
+    // rpc createSignedUploadCursor(CreateSignedUploadCursorRequest) returns (SignedUploadCursorReply) {}
+    // rpc continueSignedUploadCursor(ContinueSignedUploadCursorRequest) returns (stream SignedUploadSingleReply) {}
 }
