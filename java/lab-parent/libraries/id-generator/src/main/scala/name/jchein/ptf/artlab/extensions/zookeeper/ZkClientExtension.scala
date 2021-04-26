@@ -5,7 +5,6 @@ import java.io.Closeable
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.{ immutable, mutable }
-import scala.concurrent.duration.{ Duration, FiniteDuration }
 import scala.concurrent.duration.Duration._
 import scala.concurrent.duration.FiniteDuration._
 import scala.util.Try
@@ -26,38 +25,71 @@ import akka.actor.typed.scaladsl.Routers
 import akka.actor.typed.Dispatchers
 import akka.actor.typed.DispatcherSelector
 import akka.actor.typed.receptionist.Receptionist
+import java.time.Duration
+import com.typesafe.config.Config
+import org.apache.curator.x.async.modeled.ModelSpec
 
-object ZookeeperClientExtension
-extends ExtensionId[ZookeeperClientExtension] {
+object ZkClientExtension
+extends ExtensionId[ZkClientExtension] {
   // Scala API
-  override def createExtension(system: ActorSystem[_]): ZookeeperClientExtension =
-    new ZookeeperClientExtension(system)
+  override def createExtension(system: ActorSystem[_]): ZkClientExtension =
+    new ZkClientExtension(system)
 
   // Java API
-  def get(system: ActorSystem[_]): ZookeeperClientExtension = apply(system)
+  def get(system: ActorSystem[_]): ZkClientExtension = apply(system)
+  
+  // type contract for content from Config metadata used to open a client Zookeeper session
+  sealed trait Settings {
+    val quorum: String
+    val baseRetryDelay: Duration 
+    val maxRetryDelay: Duration
+    val maxRetryCount: Int 
+    val retryRandomFactor: Double
+    val authorization: Option[(String, String)]
+  }
 }
 
-class ZookeeperClientExtension(system: ActorSystem[_])
+//    modelSpecs: Map[Class[_], List[ModelSpec[_]]]
+class ZkClientExtension(system: ActorSystem[_])
 extends Extension {
-  val settings = ZookeeperClientSettings(system)
+  val sessionsByName: mutable.Map[String, ActorRef[ZkClient]] =
+    mutable.Map[String, ActorRef[ZkClient]]()
 
-  val zkActorRef = system.systemActorOf(
-    Behaviors.supervise(
-      ZookeeperClient(settings)
-    ).onFailure(
-      SupervisorStrategy.restartWithBackoff(
-        minBackoff = FiniteDuration(2, TimeUnit.SECONDS),
-        maxBackoff = FiniteDuration(5, TimeUnit.MINUTES),
-        randomFactor = 0.2
-      )
-    ),
-    "idGenZookeeperClient",
-    ActorTags(
-      Set("IdGenerator", "Zookeeeper")
-    ).withDispatcherFromConfig(Constants.ZK_BLOCKING_DISPATCHER_NAME)
-  );
+  def openZkSession(zkCfg: Config, adtorName: String) = {
+    case object settings extends ZkClientExtension.Settings {
+      // val actorName: String = zkCfg.getString("actorName")
+      val quorum: String = zkCfg.getString("quorum")
+      private val username: String = zkCfg.getString("username")
+      private val password: String = zkCfg.getString("password")
+      val baseRetryDelay: Duration = zkCfg.getDuration("baseRetryDelay")
+      val maxRetryDelay: Duration = zkCfg.getDuration("maxRetryDelay")
+      val maxRetryCount: Int = zkCfg.getInt("maxRetryCount")
+      val retryRandomFactor: Double = zkCfg.getDouble("retryRandomFactor")
+      val authorization: Option[(String, String)] =
+        if (! (username.isEmpty || password.isEmpty)) {
+          Some((username, password))
+        } else {
+          None
+        }
+    }
+    import settings._
   
-  // make sure the workers are restarted if they fail
-
-  system.receptionist ! Receptionist.Register(ZookeeperClient.Key, zkActorRef)
+    val actorRef = system.systemActorOf(
+      Behaviors.supervise(
+        ZkClient(settings)
+      ).onFailure(
+        SupervisorStrategy.restartWithBackoff(
+          minBackoff = baseRetryDelay,
+          maxBackoff = maxRetryDelay,
+          randomFactor = retryRandomFactor,
+        )
+      ),
+      actorName,
+      ActorTags(
+        Set("IdGenerator", "Zookeeeper")
+      ).withDispatcherFromConfig(Constants.ZK_BLOCKING_DISPATCHER_NAME)
+    );
+    
+    sessionsByName + (actorName -> actorRef)
+  }
 }

@@ -13,14 +13,17 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.StashBuffer
 import name.jchein.ptf.artlab.extensions.id_generator.IdGeneratorSettings
-import name.jchein.ptf.artlab.extensions.id_generator.ULIDRandomBitsAuthority
+import name.jchein.ptf.artlab.extensions.id_generator.ZookeeperULIDAuthority
 import name.jchein.ptf.artlab.extensions.zookeeper.ZookeeperClient
 import name.jchein.ptf.artlab.extensions.zookeeper.ZookeeperLeaderRecipe
 import name.jchein.ptf.artlab.extensions.zookeeper.ZookeeperModelNode
+import name.jchein.ptf.artlab.extensions.id_generator.ZookeeperULIDAuthority
+
+case class ZookeeperULIDAuthorityState()
 
 /**
  * Protocol for using Zookeeper to manage the initializing the "node" region
- * of a ULIDRandomBitsStrategy based on a three-tier decomposition:
+ * of a ZookeeperULIDStrategy based on a three-tier decomposition:
  * -- Node : A region for a byte sequence that is unique across all ULIDFactories in use at any
  *           point in time.  ZooKeeper is used to provide a means of distributing unique identifiers
  *           that servethis purpose
@@ -29,9 +32,10 @@ import name.jchein.ptf.artlab.extensions.zookeeper.ZookeeperModelNode
  * -- Series : A region that is incremneted whenever the clock's tick value is the same between two
  *             consecutive ULID creations.
  */
-object ZookeeperULIDAuthority extends ULIDRandomBitsAuthority {
-  private[zookeeper] sealed trait InternalEvent extends InternalMessage
+object ZookeeperULIDAuthority extends ZookeeperULIDAuthority {
+  sealed trait Message
   
+  private[zookeeper] sealed trait InternalEvent
   // Discovery-related internal messages
   private[zookeeper] final case class WrappedListing(
     val event: Receptionist.Listing
@@ -140,7 +144,7 @@ object ZookeeperULIDAuthority extends ULIDRandomBitsAuthority {
 ////    val subscriber: ActorRef[Event]) extends GeneratorIdEvent
  
   def apply(
-    settings: IdGeneratorSettings.ZookeeperLeaseConfigSettings
+    settings: ZookeeperULIDAuthorityExtension.Settings
   ): Behavior[ZookeeperULIDAuthority.Message] = {
     Behaviors.supervise(
       Behaviors.setup[ZookeeperULIDAuthority.Message](
@@ -190,9 +194,9 @@ object ZookeeperULIDAuthority extends ULIDRandomBitsAuthority {
 
 class ZookeeperULIDAuthority(
   val context:   ActorContext[ZookeeperULIDAuthority.Message],
-  val settings: IdGeneratorSettings.ZookeeperLeaseConfigSettings,
+  val settings: ZookeeperULIDAuthorityExtension.Settings,
   val stash: StashBuffer[ZookeeperULIDAuthority.Message],
-  val zkSession: ActorRef[ZookeeperClient.Message],
+  val zkSession: ActorRef[ZkClient.Message],
   val zkLeader: ActorRef[ZookeeperLeaderRecipe.Message],
   val zkConfigCache: ActorRef[ZookeeperModelNode.Message[VariantConfigModel]],
   val zkSeriesNode: ActorRef[ZookeeperModelNode.Message[NodeSequenceModel]],

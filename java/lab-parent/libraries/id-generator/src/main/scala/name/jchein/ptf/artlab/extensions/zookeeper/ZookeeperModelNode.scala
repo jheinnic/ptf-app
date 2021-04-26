@@ -22,12 +22,11 @@ import akka.pattern.StatusReply
 
 
 object ZookeeperModelNode {
-//  type Mdl
   sealed trait Message[Mdl]
   
   sealed trait Event[Mdl]
-  final case class ZkDataCacheUpdated[Mdl](val znode: ZNode[Mdl]) extends Event[Mdl]
-  final case class ZkDataChangeObserved[Mdl](val event: WatchedEventMeta) extends Event[Mdl]
+  final case class RefreshedDataCache[Mdl](val znode: ZNode[Mdl]) extends Event[Mdl]
+  final case class InvalidatedDataCache[Mdl](val event: WatchedEventMeta) extends Event[Mdl]
 
   sealed trait Response[Mdl]
   final case class SubscribeToCacheResponse[Mdl]() extends ZookeeperModelNode.Response[Mdl]
@@ -41,13 +40,13 @@ object ZookeeperModelNode {
   }
 
   final case class SubscribeToCacheRequest[Mdl, SubscribeToCacheResponse[Mdl]](
-    override val replyTo: ActorRef[StatusReply[ZookeeperModelNode.SubscribeToCacheResponse[Mdl]]],
+    val replyTo: ActorRef[StatusReply[SubscribeToCacheResponse[Mdl]]],
     val subscriber: ActorRef[Event[Mdl]]
-  ) extends Request[Mdl, ZookeeperModelNode.SubscribeToCacheResponse[Mdl]]
+  ) extends Request[Mdl, SubscribeToCacheResponse[Mdl]]
 
   final case class ReadDataVersionRequest[Mdl, ReadDataVersionResponse[Mdl]](
-    val replyTo: ActorRef[StatusReply[ZookeeperModelNode.ReadDataVersionResponse[Mdl]]]
-  ) extends Request[Mdl, ZookeeperModelNode.ReadDataVersionResponse[Mdl]]
+    val replyTo: ActorRef[StatusReply[ReadDataVersionResponse[Mdl]]]
+  ) extends Request[Mdl, ReadDataVersionResponse[Mdl]]
 
   final case class WriteDataVersionRequest[Mdl, WriteDataVersionResponse[Mdl]](
     val replyTo: ActorRef[StatusReply[ZookeeperModelNode.WriteDataVersionResponse[Mdl]]],

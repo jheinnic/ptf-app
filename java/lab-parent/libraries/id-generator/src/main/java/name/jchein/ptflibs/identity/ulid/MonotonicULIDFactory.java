@@ -86,69 +86,61 @@ public class MonotonicULIDFactory implements ULIDFactory
 
 	public ULID altNextULID()
 	{
-		long previousTimestamp = this.latestTimestamp;
-		long timestamp = this.clock.millis();
-		ULID[] retVal = new ULID[1];
-		if (timestamp < previousTimestamp) {
-			this.random.onBackTick4040((final long hi40, final long lo40) -> {
+		final ULID[] retVal = new ULID[1];
+		final long timestamp = this.clock.millis();
+		processULIDRequest(
+			timestamp,
+			(final long hi40, final long lo40) -> {
 				retVal[0] = ULID.fromTimeHi40Lo40(timestamp, hi40, lo40);
-			});
-		} else if (timestamp == previousTimestamp) {
-			this.random.onSameTick4040((final long hi40, final long lo40) -> {
-				retVal[0] = ULID.fromTimeHi40Lo40(timestamp, hi40, lo40);
-			});
-		} else {
-			this.random.onForwardTick4040((final long hi40, final long lo40) -> {
-				retVal[0] = ULID.fromTimeHi40Lo40(timestamp, hi40, lo40);
-			});
-		}
+			}
+		);
 
-		this.latestTimestamp = timestamp;
-		
-		try {
-			return retVal[0];
-		} catch( Exception e ) {
-			throw new RuntimeException(e);
-		}
+		return retVal[0];
 	}
 
 	@Override
 	public void appendULID(final StringBuilder builder)
 	{
 		final long timestamp = this.clock.millis();
+		processULIDRequest(
+			timestamp,
+			(final long hi40, final long lo40) -> {
+				ULID.encodeTimeHi40Lo40(builder, timestamp, hi40, lo40);
+			}
+		);
+	}
+
+	private void processULIDRequest(
+		final long timestamp,
+		final ULIDRandomBitsStrategy.Random4040Callback callback)
+	{
 		final long previousTimestamp = this.latestTimestamp;
 		if (timestamp < previousTimestamp) {
-			this.random.onBackTick4040((final long hi40, final long lo40) -> {
-				ULID.encodeTimeHi40Lo40(builder, timestamp, hi40, lo40);
-			});
+			this.random.onBackTick4040(timestamp, callback);
 		} else if (timestamp == previousTimestamp) {
-			this.random.onSameTick4040((final long hi40, final long lo40) -> {
-				ULID.encodeTimeHi40Lo40(builder, timestamp, hi40, lo40);
-			});
+			this.random.onSameTick4040(timestamp, callback);
 		} else {
-			this.random.onForwardTick4040((final long hi40, final long lo40) -> {
-				ULID.encodeTimeHi40Lo40(builder, timestamp, hi40, lo40);
-			});
+			this.random.onForwardTick4040(timestamp, callback);
 		}
+		this.latestTimestamp = timestamp;
 	}
 
 	public ULID nextULID()
 	{
-		long previousTimestamp = this.latestTimestamp;
 		long timestamp = this.clock.millis();
 		ULID[] retVal = new ULID[1];
-		if (timestamp < previousTimestamp) {
+		if (timestamp < this.latestTimestamp) {
 			// TODO: Treat time < prevTime as time == prevTime within a small
 			//       window of tolerance where (prevTime - time) < tolerance,
 			//       sparing sequence iteration when the interval to recovery
 			//       is brief.
 			// NOTE: We sort of have this already by setting a Clock interface
 			//       tick size...  Maybe disregard this TODO?
-			this.random.onBackTickIntLong((final int hi16, final long lo64) -> {
+			this.random.onBackTickIntLong(timestamp, (final int hi16, final long lo64) -> {
 				retVal[0] = ULID.fromTimeHi16Lo64(timestamp, hi16, lo64);
 			});
-		} else if (timestamp == previousTimestamp) {
-			this.random.onSameTickIntLong((final int hi16, final long lo64) -> {
+		} else if (timestamp == this.latestTimestamp) {
+			this.random.onSameTickIntLong(timestamp, (final int hi16, final long lo64) -> {
 				retVal[0] = ULID.fromTimeHi16Lo64(timestamp, hi16, lo64);
 			});
 		} else {
@@ -156,7 +148,7 @@ public class MonotonicULIDFactory implements ULIDFactory
 			// their sequence, which is only bumped forward when time has moved
 			// backwards. We can reuse any node bits we do not believe we have
 			// already used with an earlier occurence of present clock time.
-			this.random.onForwardTickIntLong((final int hi16, final long lo64) -> {
+			this.random.onForwardTickIntLong(timestamp, (final int hi16, final long lo64) -> {
 				retVal[0] = ULID.fromTimeHi16Lo64(timestamp, hi16, lo64);
 			});
 		}
@@ -168,11 +160,11 @@ public class MonotonicULIDFactory implements ULIDFactory
 		// always requires a temporal backstep.
 		this.latestTimestamp = timestamp;
 		
-		try {
-			return retVal[0];
-		} catch( Exception e ) {
-			throw new RuntimeException(e);
-		}
+//		try {
+		return retVal[0];
+//		} catch( Exception e ) {
+//			throw new RuntimeException(e);
+//		}
 	}
 
 //	public void in(StringBuilder builder)

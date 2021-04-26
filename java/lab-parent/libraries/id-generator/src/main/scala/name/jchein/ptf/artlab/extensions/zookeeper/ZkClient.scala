@@ -8,6 +8,7 @@ import org.apache.curator.x.async.AsyncCuratorFramework
 import org.apache.curator.x.async.modeled.ModelSpec
 import org.apache.curator.x.async.modeled.ZPath
 
+import akka.pattern.StatusReply
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
@@ -15,10 +16,9 @@ import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.StashBuffer
-import akka.pattern.StatusReply
 
 
-object ZookeeperClient {
+object ZkClient {
   sealed trait Message
 
   sealed trait Request[Rsp <: Response] extends Message {
@@ -49,11 +49,13 @@ object ZookeeperClient {
   private[zookeeper] final case class ZkConnectionSuspended() extends InternalEvent
   private[zookeeper] final case class ZkConnectionReconnected() extends InternalEvent
 
-  val Key: ServiceKey[ZookeeperClient.Message] = ServiceKey(Constants.ZK_SERVICE_NAME)
+  val Key: ServiceKey[ZkClient.Message] = ServiceKey(Constants.ZK_SERVICE_NAME)
 
-  def apply(settings: ZkClientSettings): Behavior[Message] = {
+  def apply(settings: ZkClientExtension#Settings): Behavior[Message] = {
     Behaviors.setup[Message] { context: ActorContext[Message] => 
-      Behaviors.withStash(100) { stash: StashBuffer[Message] => new ZookeeperClient(context, settings, stash) }
+      Behaviors.withStash(100) { stash: StashBuffer[Message] =>
+        new ZkClient(context, settings, stash)
+      }
     } 
   }
 
@@ -80,20 +82,20 @@ object ZookeeperClient {
    */
   class ZkClientInvalidStateException(val message: String) extends Exception(message) { }
   
-  class ZookeeperLostSessionException extends RuntimeException { }
+  class ZkLostSessionException extends RuntimeException { }
 }
 
 
-class ZookeeperClient(
-	override val context: ActorContext[ZookeeperClient.Message],
-	val settings: ZkClientSettings,
-	val stash: StashBuffer[ZookeeperClient.Message]
-) extends AbstractBehavior[ZookeeperClient.Message](context) with ZookeeperSessionWatcher {
+class ZkClient(
+	/*override*/ val context: ActorContext[ZkClient.Message],
+	val settings: ZkClientExtension#Settings,
+	val stash: StashBuffer[ZkClient.Message]
+) extends AbstractBehavior[ZkClient.Message](context) with ZookeeperSessionWatcher {
 //		val nodeSequenceModelClient: ModeledFramework[NodeSequenceModel],
 //		val variantConfigModelClient: ModeledFramework[VariantConfigModel],
 //		val versionedModelClient: VersionedModeledFramework[NodeSequenceModel],
 //		val genClaimsSeq: PSequence[GeneratorIdClaimState] = TreePVector.empty(),
-//		val genClaimsByActorRef: PMap[ActorRef[ZookeeperEvents.Event], GeneratorIdClaimState] = HashTreePMap.empty(),
+//		val genClaimsByActorRef: PMap[ActorRef[ZkEvents.Event], GeneratorIdClaimState] = HashTreePMap.empty(),
 //		val genClaimsById: PMap[Long, GeneratorIdClaimState] = HashTreePMap.empty(),
 //		val leaderLatch: Optional[LeaderLatch] = Optional.empty(),
 //		val idGenConfigWatch: Optional[CuratorWatcher] = Optional.empty(),
@@ -102,15 +104,15 @@ class ZookeeperClient(
 //		val pendingProposalNewIds: PSequence[Long] = TreePVector.empty()
 	
 
-//	private[zookeeper] val claimSubscriberBehavior:
-//	  PartialFunction[ZookeeperClient.Request, Behavior[ZookeeperClient.Request]] = { 
-//	  case ZookeeperClient.SubscribeGeneratorClientRequest(
-//			replyTo: ActorRef[StatusReply[ZookeeperClient.Response]],
-//			subscriber: ActorRef[ZookeeperEvents.Event]
+//	private[zk] val claimSubscriberBehavior:
+//	  PartialFunction[ZkClient.Request, Behavior[ZkClient.Request]] = { 
+//	  case ZkClient.SubscribeGeneratorClientRequest(
+//			replyTo: ActorRef[StatusReply[ZkClient.Response]],
+//			subscriber: ActorRef[ZkEvents.Event]
 //		) =>
 //	    context.log.info("In claimSubsriberBehavior() subscription case")
 //     	context.log.info("Still in claimSubsriberBehavior() subscription")
-//     	replyTo ! StatusReply.success(ZookeeperClient.GeneratorClientSubscribedResponse())
+//     	replyTo ! StatusReply.success(ZkClient.GeneratorClientSubscribedResponse())
 //     	context.log.info("Sent reply!")
 //     	context.self ! ZkClientProtocol.RunClaimMaintenance()
 //     	val newRequest = new RequestingGeneratorIdClaimState(subscriber)
@@ -120,9 +122,9 @@ class ZookeeperClient(
 //     			genClaimsByActorRef = currentState.genClaimsByActorRef.plus(subscriber, newRequest)
 //     		)
 //     	)
-//	  case ZookeeperClient.UnsubscribeGeneratorClientRequest(
-//			replyTo: ActorRef[StatusReply[ZookeeperClient.Response]],
-//			subscriber: ActorRef[ZookeeperClientEvents.Event]
+//	  case ZkClient.UnsubscribeGeneratorClientRequest(
+//			replyTo: ActorRef[StatusReply[ZkClient.Response]],
+//			subscriber: ActorRef[ZkClientEvents.Event]
 //		) =>
 //	    val toRemove = currentState.genClaimsByActorRef.get(subscriber)
 //	    toRemove match {
@@ -135,8 +137,8 @@ class ZookeeperClient(
 //			    )
 //	        Behaviors.unhandled
 //	      case request: RequestingGeneratorIdClaimState =>
-//	        subscriber ! new ZookeeperClientEvents.DroppedRequestEvent(subscriber)
-//	        replyTo ! StatusReply.success(ZookeeperClient.GeneratorClientUnsubscribedResponse())
+//	        subscriber ! new ZkClientEvents.DroppedRequestEvent(subscriber)
+//	        replyTo ! StatusReply.success(ZkClient.GeneratorClientUnsubscribedResponse())
 //	        changeState(
 //			      currentState.copy(
 //					    genClaimsSeq = currentState.genClaimsSeq.minus(toRemove),
@@ -144,8 +146,8 @@ class ZookeeperClient(
 //					  )
 //			    )
 //	      case request: ProposedGeneratorIdClaimState =>
-//	        subscriber ! new ZookeeperClientEvents.DroppedRequestEvent(subscriber)
-//	        replyTo ! StatusReply.success(ZookeeperClient.GeneratorClientUnsubscribedResponse())
+//	        subscriber ! new ZkClientEvents.DroppedRequestEvent(subscriber)
+//	        replyTo ! StatusReply.success(ZkClient.GeneratorClientUnsubscribedResponse())
 //	        changeState(
 //			      currentState.copy(
 //					    genClaimsSeq = currentState.genClaimsSeq.minus(toRemove),
@@ -155,12 +157,12 @@ class ZookeeperClient(
 //	    }
 //	}
 
-//	def failed(): Behavior[ZookeeperClient.Request] = { 
+//	def failed(): Behavior[ZkClient.Request] = { 
 //	  context.log.info("In failed()")
 //		Behaviors.receiveMessage(
 //		  // claimSubscriberBehavior orElse {
 //		  {
-//				case src: ZookeeperClient.AskedRequest =>
+//				case src: ZkClient.AskedRequest =>
 //				  src.replyTo ! StatusReply.error(s"Received {_.toString()} after failure")
 //				  context.log.error(s"Received {_.toString()} after failure")
 //				  Behaviors.same
@@ -171,21 +173,21 @@ class ZookeeperClient(
 //		)
 //	}
 
-//	private[zookeeper] val claimSubscriberBehavior:
-//	  PartialFunction[ZookeeperClient.Query, Behavior[ZookeeperClient.Message]] = { 
-//	    case ZookeeperClient.GetClientRegistration( variantId: Byte,  queryId: Int,  replyTo: ActorRef[ZookeeperClient.Response]
+//	private[zk] val claimSubscriberBehavior:
+//	  PartialFunction[ZkClient.Query, Behavior[ZkClient.Message]] = { 
+//	    case ZkClient.GetClientRegistration( variantId: Byte,  queryId: Int,  replyTo: ActorRef[ZkClient.Response]
 //		  ) => {
 //		    if (! this.variantClients(variantId).isPresent()) {
 //		      val thisVariantId = variantId
 //		      val retVal = context.spawn(
-//		        { (context: ActorContext[ZookeeperClient.Request]) => 
-//		          ZookeeperClient(context, thisVariantId, settings)
+//		        { (context: ActorContext[ZkClient.Request]) => 
+//		          ZkClient(context, thisVariantId, settings)
 //		        },
-//		        s"ZookeeperClient_$variantId"
+//		        s"ZkClient_$variantId"
 //		      );
 //		    }
 //		  }
-//     	replyTo ! StatusReply.success(ZookeeperClient.GeneratorClientSubscribedResponse())
+//     	replyTo ! StatusReply.success(ZkClient.GeneratorClientSubscribedResponse())
 //     	context.log.info("Sent reply!")
 //     	context.self ! ZkClientProtocol.RunClaimMaintenance()
 //     	val newRequest = new RequestingGeneratorIdClaimState(subscriber)
@@ -199,15 +201,11 @@ class ZookeeperClient(
 //	val variantConfigClient = VariantConfigModel(curatorClient, settings, 1)
 //	val versionedClient = nodeSeqClient.versioned()
   
-  type BehaviorMode = ZookeeperClient.Message => Behavior[ZookeeperClient.Message];
+  type BehaviorMode = ZkClient.Message => Behavior[ZkClient.Message];
 
-  type LifecycleStage = ZookeeperClient.LifecycleStage.LifecycleStage
-  val INITIAL = ZookeeperClient.LifecycleStage.INITIAL
-  val CONNECTED = ZookeeperClient.LifecycleStage.CONNECTED
-  val SUSPENDED = ZookeeperClient.LifecycleStage.SUSPENDED
-  val LOST = ZookeeperClient.LifecycleStage.LOST
+  import ZkClient.LifecycleStage._
   
-	this.context.log.info("Creating Zookeeper Client from thread {Thread.currentThread()}")
+	this.context.log.info("Creating Zk Client from thread {Thread.currentThread()}")
 
 //	val zPathToServiceKeys: HashMap[ZPath, ServiceKey[_]] =
 //	  new HashMap[ZPath, ServiceKey[_]]()
@@ -216,32 +214,32 @@ class ZookeeperClient(
 	  context.messageAdapter( (src: ZookeeperSessionWatcher.Event) =>
 	    src match {
 	      case ZookeeperSessionWatcher.ZkConnectionSuccessful() => 
-	        ZookeeperClient.ZkConnectionSuccessful()
+	        ZkClient.ZkConnectionSuccessful()
 	      case ZookeeperSessionWatcher.ZkConnectionLost() => 
-	        ZookeeperClient.ZkConnectionLost()
+	        ZkClient.ZkConnectionLost()
 	      case ZookeeperSessionWatcher.ZkConnectionSuspended() => 
-	        ZookeeperClient.ZkConnectionSuspended()
+	        ZkClient.ZkConnectionSuspended()
 	      case ZookeeperSessionWatcher.ZkConnectionReconnected() => 
-	        ZookeeperClient.ZkConnectionReconnected()
+	        ZkClient.ZkConnectionReconnected()
 	    }
 	  )
 	var currentBehavior: BehaviorMode = preSession _
 	var currentLifecycleStage: LifecycleStage = INITIAL
 		
-//  val commonlyUnused: PartialFunction[ZookeeperClient.Message, Behavior[ZookeeperClient.Message]] = {
-//    case ZookeeperClient.ZkAcquiredLeadership() => 
+//  val commonlyUnused: PartialFunction[ZkClient.Message, Behavior[ZkClient.Message]] = {
+//    case ZkClient.ZkAcquiredLeadership() => 
 //      this.context.log.error(
 //        "Received impossible leadership notifcation although we are not participating in a leadership contest")
 //      Behaviors.unhandled
-//    case ZookeeperClient.ZkLostLeadership() => 
+//    case ZkClient.ZkLostLeadership() => 
 //      this.context.log.error(
 //        "Received impossible leadership notifcation although we are not participating in a leadership contest")
 //      Behaviors.unhandled
-//    case ZookeeperClient.ZkProcessChildChange(event: WatchedEventMeta) => 
+//    case ZkClient.ZkProcessChildChange(event: WatchedEventMeta) => 
 //      this.context.log.error(
 //        "Received impossible changed children notification as we have not subscribed for any watches")
 //      Behaviors.unhandled
-//    case ZookeeperClient.ZkProcessDataChange(event: WatchedEventMeta) => 
+//    case ZkClient.ZkProcessDataChange(event: WatchedEventMeta) => 
 //      this.context.log.error(
 //        "Received impossible changed children notification as we have not subscribed for any watches")
 //      Behaviors.unhandled
@@ -250,9 +248,9 @@ class ZookeeperClient(
 //		  Behaviors.unhandled
 //	}
 
-//  val stashQueries: PartialFunction[ZookeeperClient.Message, Behavior[ZookeeperClient.Message]] = {
-//    case msg @ ZookeeperClient.GetZPathBasedActorRequest(
-//      replyTo: ActorRef[StatusReply[ZookeeperClient.Response]],
+//  val stashQueries: PartialFunction[ZkClient.Message, Behavior[ZkClient.Message]] = {
+//    case msg @ ZkClient.GetZPathBasedActorRequest(
+//      replyTo: ActorRef[StatusReply[ZkClient.Response]],
 //      actorType: String,
 //      pathToZNode: String
 //    ) => 
@@ -288,9 +286,9 @@ class ZookeeperClient(
 //    actorType match {
 //      case Constants.ULID_ZPATH_ACTOR_TYPE => {
 //        val keyName = s"${actorType}@${zPath}"
-//        val serviceKey = ServiceKey[ZookeeperULIDAuthority](keyName) 
+//        val serviceKey = ServiceKey[ZkULIDAuthority](keyName) 
 //        this.context.spawn(
-//          ZookeeperULIDAuthority(null), keyName
+//          ZkULIDAuthority(null), keyName
 //        )
 //        zPathToServiceKeys += (zPath -> serviceKey)
 //        serviceKey
@@ -303,28 +301,28 @@ class ZookeeperClient(
 //    }
 //  }
 
-  def suspended(msg: ZookeeperClient.Message): Behavior[ZookeeperClient.Message] = {
-	  val partialFn: PartialFunction[ZookeeperClient.Message, Behavior[ZookeeperClient.Message]] = {
-      case ZookeeperClient.ZkConnectionSuccessful() => 
+  def suspended(msg: ZkClient.Message): Behavior[ZkClient.Message] = {
+	  val partialFn: PartialFunction[ZkClient.Message, Behavior[ZkClient.Message]] = {
+      case evt: ZkClient.ZkConnectionSuccessful => 
         this.context.log.error(
           "Received out-of-this.context session connection notice while suspended on an existing session"
         )
         Behaviors.unhandled
-      case ZookeeperClient.ZkConnectionLost() => 
-        this.context.log.error(
-          "Received session loss notification.  Erroring out this actor"
-        );
-        throw new ZookeeperClient.ZookeeperLostSessionException();
-      case ZookeeperClient.ZkConnectionSuspended() => 
+      case evt: ZkClient.ZkConnectionLost => 
+        this.context.log.error("Received lost session notification.")
+//        throw new ZkClient.ZkLostSessionException();
+        ZkClient.this.currentBehavior = preSession _
+        ZkClient.this
+      case evt: ZkClient.ZkConnectionSuspended => 
         this.context.log.error(
           "Received out-of-this.context session suspension notice, but current session is already suspended")
         Behaviors.unhandled
-      case ZookeeperClient.ZkConnectionReconnected() => 
+      case evt: ZkClient.ZkConnectionReconnected => 
         this.context.log.info(
           "Received session reconnection notice.  Returning to connected state."
         )
-        ZookeeperClient.this.currentBehavior = connected _
-        ZookeeperClient.this
+        ZkClient.this.currentBehavior = connected _
+        ZkClient.this
     }
 	  
 	  // Combine unique partial above with common partial subblocks, then
@@ -332,34 +330,34 @@ class ZookeeperClient(
 	  // TODO: Attempt to construct this once and reuse it rather than
 	  //       reassembling on each API interaction round trip.
 	  partialFn.apply(msg)
-//	    ZookeeperClient.this.stashQueries
-//	  ).orElse(
-//	    ZookeeperClient.this.commonlyUnused
+//    .orElse(
+//	    ZkClient.this.stashQueries
+//	  ).orElse(partialFn
+//	    ZkClient.this.commonlyUnused
 //	  ).apply(msg)
   }
   
-  def connected(msg: ZookeeperClient.Message): Behavior[ZookeeperClient.Message] = { 
-	  val partialFn: PartialFunction[ZookeeperClient.Message, Behavior[ZookeeperClient.Message]] = {
-      case ZookeeperClient.ZkConnectionSuccessful() => 
+  def connected(msg: ZkClient.Message): Behavior[ZkClient.Message] = { 
+	  val partialFn: PartialFunction[ZkClient.Message, Behavior[ZkClient.Message]] = {
+      case evt: ZkClient.ZkConnectionSuccessful => 
         this.context.log.warn(
           "Received redundant 'Connected' event while already in an open ZK Session."
         )
         Behaviors.unhandled
-      case ZookeeperClient.ZkConnectionLost() => 
-        this.context.log.error(
-          "Received session loss notification.  Erroring out this actor"
-        );
-        throw new ZookeeperClient.ZookeeperLostSessionException();
-      case ZookeeperClient.ZkConnectionSuspended() => 
+      case evt: ZkClient.ZkConnectionLost => 
+        this.context.log.error("Received lost session notification.")
+        ZkClient.this.currentBehavior = preSession _
+        ZkClient.this
+      case evt: ZkClient.ZkConnectionSuspended => 
         this.context.log.info("Processing session suspension notice")
-        ZookeeperClient.this.currentBehavior = suspended _
+        ZkClient.this.currentBehavior = suspended _
         Behaviors.same
-      case ZookeeperClient.ZkConnectionReconnected() => 
+      case evt: ZkClient.ZkConnectionReconnected => 
         this.context.log.error(
           "Received out-of-this.context session resumption notice, but current session is not suspended.")
         Behaviors.unhandled
-//      case msg @ ZookeeperClient.GetZPathBasedActorRequest(
-//        replyTo: ActorRef[StatusReply[ZookeeperClient.Response]],
+//      case msg @ ZkClient.GetZPathBasedActorRequest(
+//        replyTo: ActorRef[StatusReply[ZkClient.Response]],
 //        actorType: String,
 //        zPath: String
 //      ) => 
@@ -370,7 +368,7 @@ class ZookeeperClient(
 //          this.maybeActorByTypeAndZPath(actorType, parsedZPath)
 //        if (foundKey.isPresent()) {
 //          replyTo ! StatusReply.success(
-//            ZookeeperClient.GetZPathBasedActorResponse(
+//            ZkClient.GetZPathBasedActorResponse(
 //              actorType, zPath, foundKey.get()
 //            )
 //          ) 
@@ -382,7 +380,7 @@ class ZookeeperClient(
 //          } else {
 //            this.zPathToServiceKeys += (parsedZPath -> createdKey)
 //            replyTo ! StatusReply.success(
-//              ZookeeperClient.GetZPathBasedActorResponse(
+//              ZkClient.GetZPathBasedActorResponse(
 //                actorType, zPath, createdKey
 //              )
 //            )
@@ -394,24 +392,24 @@ class ZookeeperClient(
 	  partialFn.apply(msg)
   }
 		
-  def preSession(msg: ZookeeperClient.Message): Behavior[ZookeeperClient.Message] = {
-	  val partialFn: PartialFunction[ZookeeperClient.Message, Behavior[ZookeeperClient.Message]] = {
-      case ZookeeperClient.ZkConnectionSuccessful() => 
+  def preSession(msg: ZkClient.Message): Behavior[ZkClient.Message] = {
+	  val partialFn: PartialFunction[ZkClient.Message, Behavior[ZkClient.Message]] = {
+      case evt: ZkClient.ZkConnectionSuccessful => 
         this.context.log.info(
           "Incoming login ack steps field status to connected"
         )
         currentBehavior = connected
         stash.unstashAll(this)
-      case ZookeeperClient.ZkConnectionLost() => 
+      case evt: ZkClient.ZkConnectionLost => 
         this.context.log.error(
           "Received out-of-this.context session loss notice before having connected to a session"
         )
         Behaviors.unhandled
-      case ZookeeperClient.ZkConnectionSuspended() => 
+      case evt: ZkClient.ZkConnectionSuspended => 
         this.context.log.error(
           "Received out-of-this.context session suspension notice, but no connection is open yet")
         Behaviors.unhandled
-      case ZookeeperClient.ZkConnectionReconnected() => 
+      case evt: ZkClient.ZkConnectionReconnected => 
         this.context.log.error(
           "Received out-of-this.context session resumption notice, but no connection is open yet")
         Behaviors.unhandled
@@ -419,62 +417,62 @@ class ZookeeperClient(
 
 	  partialFn.apply(msg)
 	}
-			//      this.context.log.info(s"Zookeeper bootstrap pending on {Thread.currentThread()}")
+			//      this.context.log.info(s"Zk bootstrap pending on {Thread.currentThread()}")
 			//      handle(state)
 			//              handle(new BootstrappingState(settings, client)) // closeableServices))
-			//        case ZookeeperClient.claimGenIdReq: ClaimGeneratorIdRequest =>
+			//        case ZkClient.claimGenIdReq: ClaimGeneratorIdRequest =>
 			//              Behaviors.same
 			//                val myId = System.getenv("HOSTNAME")
 			//                val group = new GroupMember(client, settings.ZK_ZNODE, myId, new Array[Byte](3))
 			//                var seedEntryAdded = false
 			//                val closeableServices: PSet[Closeable] = HashTreePSet.singleton(group)
 
-//	def changeState(nextState: State, nextBehavior: Behavior[ZookeeperClient.Request] = currentBehavior): Behavior[ZookeeperClient.Request] = {
+//	def changeState(nextState: State, nextBehavior: Behavior[ZkClient.Request] = currentBehavior): Behavior[ZkClient.Request] = {
 //		currentState = nextState
 //		currentBehavior = nextBehavior
 //		currentBehavior
 //	}
 //
-//	def changeBehavior(nextBehavior: Behavior[ZookeeperClient.Request]): Behavior[ZookeeperClient.Request] = {
+//	def changeBehavior(nextBehavior: Behavior[ZkClient.Request]): Behavior[ZkClient.Request] = {
 //    currentBehavior = nextBehavior
 //	  currentBehavior
 //	}
 
-//	def publishEvent(nextEvent: ZookeeperEvents.Event): Unit =
+//	def publishEvent(nextEvent: ZkEvents.Event): Unit =
 //		nextEvent match {
-//			case genIdEvent: ZookeeperEvents.GeneratorIdEvent =>
+//			case genIdEvent: ZkEvents.GeneratorIdEvent =>
 //				genIdEvent.subscriber ! genIdEvent
-//	  	case clientEvent: ZookeeperEvents.ZkSessionEvent =>
+//	  	case clientEvent: ZkEvents.ZookeeperSessionEvent =>
 //				currentState.genClaimsSeq.forEach { claimState => 
 //				  claimState.subscriber ! clientEvent
 //		    }
 //	  }
   
   /*
-  val suspended: Function1[ZookeeperClient.Message, Behavior[ZookeeperClient.Message]] = { msg: ZookeeperClient.Message =>
+  val suspended: Function1[ZkClient.Message, Behavior[ZkClient.Message]] = { msg: ZkClient.Message =>
 	  msg match {
-				case ZookeeperClient.ZkConnectionSuccessful() =>
-					publishEvent(ZookeeperClientEvents.SessionConnectedEvent())
+				case ZkClient.ZkConnectionSuccessful() =>
+					publishEvent(ZkClientEvents.SessionConnectedEvent())
 					changeBehavior(connected)
-				case ZookeeperClient.ZkConnectionLost()  =>
-					publishEvent(ZookeeperClientEvents.SessionLostEvent())
+				case ZkClient.ZkConnectionLost()  =>
+					publishEvent(ZkClientEvents.SessionLostEvent())
 					changeBehavior(disconnected)
-				case ZookeeperClient.ZkConnectionPastDeadline() =>
-					publishEvent(ZookeeperClientEvents.FailedToConnectEvent())
+				case ZkClient.ZkConnectionPastDeadline() =>
+					publishEvent(ZkClientEvents.FailedToConnectEvent())
 					changeBehavior(failed)
-				case ZookeeperClient.ZkProcessChildChange(event: WatchedEventMeta)  =>
+				case ZkClient.ZkProcessChildChange(event: WatchedEventMeta)  =>
 					Behaviors.same
-				case ZookeeperClient.ZkProcessDataChange(event: WatchedEventMeta)  =>
+				case ZkClient.ZkProcessDataChange(event: WatchedEventMeta)  =>
 					Behaviors.same
 			}
    */
 
-//	def publishEvent(nextEvent: ZookeeperClient.ZkSessionEvent): Unit =
+//	def publishEvent(nextEvent: ZkClient.ZookeeperSessionEvent): Unit =
 //		currentState.genClaimsSeq.forEach { claimState => 
 //			claimState.subscriber ! nextEvent
 //	  }
 
-	override def onMessage(msg: ZookeeperClient.Message): Behavior[ZookeeperClient.Message] = {
+	override def onMessage(msg: ZkClient.Message): Behavior[ZkClient.Message] = {
 		this.context.log.info(s"Called onMessage($msg)")
 		currentBehavior(msg)
 	}

@@ -1,4 +1,4 @@
-package name.jchein.ptf.artlab.extensions.id_generator.variants
+package name.jchein.ptf.artlab.extensions.id_generator.secrand
 
 import java.time.Duration
 import java.time.Instant

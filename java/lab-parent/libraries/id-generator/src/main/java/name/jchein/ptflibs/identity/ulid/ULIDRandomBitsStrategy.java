@@ -9,7 +9,7 @@ package name.jchein.ptflibs.identity.ulid;
  * Each call to onBackTick(), onClockTick(), or onNext() is expected to advance internal state forward to a new
  * answer.  The remaining getXXX() methods provide access to different bit ranges of this same single answer until
  * their state is altered by the next call to an onXXX() method.  For multiple ULID generators to collaborate on a
- * single such artifact, there would need to be an external critical section/suchromization mutex spanning the first
+ * single such artifact, there would need to be an external critical section/synchronization mutex spanning the first
  * call to an onXXX() method to the last call to a getXXX() method.
  * 
  * @author jheinnic
@@ -40,9 +40,9 @@ public interface ULIDRandomBitsStrategy {
 	 * sequence, but may want to augment randomness with some bits set aside for an "epoch" field.  Future
 	 *
 	 */
-	public void onBackTick4040(Random4040Callback callback);
+	public void onBackTick4040(long timetstamp, Random4040Callback callback);
 
-	public void onBackTickIntLong(RandomIntLongCallback callback);
+	public void onBackTickIntLong(long timestamp, RandomIntLongCallback callback);
 	
 	/**
 	 * Signals "next" and the beginning of a new clock tick.  Generators that either use state to produce a
@@ -50,15 +50,15 @@ public interface ULIDRandomBitsStrategy {
 	 * to repeat previously used values, since those values are certain to be paired with different clock
 	 * values now.
 	 */
-	public void onForwardTick4040(Random4040Callback callback);
+	public void onForwardTick4040(long timestamp, Random4040Callback callback);
 
-	public void onForwardTickIntLong(RandomIntLongCallback callback);
+	public void onForwardTickIntLong(long timestamp, RandomIntLongCallback callback);
 	
 	/**
 	 * Signals next, but with the clock value unchanged.  Generators should advance to return their next
 	 * value, or if using random values without a concept of sequence, a different value at any rate.
 	 */
-	public void onSameTick4040(Random4040Callback callback);
+	public void onSameTick4040(long timestamp, Random4040Callback callback);
 
-	public void onSameTickIntLong(RandomIntLongCallback callback);
+	public void onSameTickIntLong(long timestamp, RandomIntLongCallback callback);
 }

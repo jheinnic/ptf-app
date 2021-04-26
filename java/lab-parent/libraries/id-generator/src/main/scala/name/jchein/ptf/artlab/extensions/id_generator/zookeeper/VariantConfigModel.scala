@@ -13,7 +13,6 @@ import org.apache.curator.x.async.modeled.ModeledFramework
 import org.apache.curator.x.async.modeled.ZPath
 
 import name.jchein.ptf.artlab.extensions.id_generator.Constants
-import name.jchein.ptf.artlab.extensions.id_generator.IdGeneratorSettings
 import name.jchein.ptflibs.math.field.PrimePowerGroup
 import name.jchein.ptflibs.math.field.LongGroupGeneratorSpliterator
 
@@ -60,10 +59,10 @@ class VariantConfigModel(
     }
     val retVal: Array[Long] = new Array[Long](4);
     if (
-        !ord.tryAdvance { x => retVal.update(0, x) } ||
-        !ord.tryAdvance { retVal.update(1, _) } ||
-        !ord.tryAdvance { retVal.update(2, _) } ||
-        !ord.tryAdvance { retVal.update(3, _) }
+        !ord.tryAdvance { x:Long => retVal.update(0, x) } ||
+        !ord.tryAdvance { x:Long => retVal.update(1, x) } ||
+        !ord.tryAdvance { x:Long => retVal.update(2, x) } ||
+        !ord.tryAdvance { x:Long => retVal.update(3, x) }
     ) {
       throw new IllegalStateException("Failed to advance GroupGenerator!");
     }

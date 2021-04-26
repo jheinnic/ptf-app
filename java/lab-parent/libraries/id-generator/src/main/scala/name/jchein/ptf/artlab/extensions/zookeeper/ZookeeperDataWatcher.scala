@@ -12,11 +12,14 @@ import org.apache.curator.framework.state.ConnectionState
 import org.apache.curator.x.async.AsyncCuratorFramework
 import akka.actor.typed.ActorRef.ActorRefOps
 import akka.actor.typed.scaladsl.AbstractBehavior
+import org.apache.zookeeper.Watcher.Event.EventType
 
 object ZookeeperDataWatcher {
   sealed trait Event
-  final case class ZkProcessChildChange(event: WatchedEventMeta) extends Event
-  final case class ZkProcessDataChange(val event: WatchedEventMeta) extends Event
+  final case class WatchedChildrenChangedEvent(event: WatchedEvent) extends Event
+  final case class WatchedDataChangedEvent(event: WatchedEvent) extends Event
+  final case class WatchedNodeCreatedEvent(event: WatchedEvent) extends Event
+  final case class WatchedNodeDeletedEvent(event: WatchedEvent) extends Event
 }
 
 trait DataWatchingActor {
@@ -29,21 +32,26 @@ trait DataWatchingActor {
  * Contains the logic for handling ZooKeeper [[org.apache.zookeeper.WatchedEvent]]
  */
 trait ZookeeperDataWatcher extends Watcher with DataWatchingActor {
-  private var keeperState = KeeperState.Disconnected
-
   /**
    * Process an incoming [[org.apache.zookeeper.WatchedEvent]].
    * @param event event to process
    */
   override def process(event: WatchedEvent): Unit = {
-    val meta = WatchedEventMeta(event)
-
-    if (meta.dataChanged) {
-      this.dataWatchEventHandler ! ZookeeperDataWatcher.ZkProcessDataChange(meta)
-    }
-
-    if (meta.childrenChanged) {
-      this.dataWatchEventHandler ! ZookeeperDataWatcher.ZkProcessChildChange(meta)
+    if (Option(event.getPath) != None) {
+      event.getType() match {
+        case EventType.NodeDeleted => {
+          this.dataWatchEventHandler ! ZookeeperDataWatcher.WatchedNodeDeletedEvent(event)
+        } 
+        case EventType.NodeCreated => {
+          this.dataWatchEventHandler ! ZookeeperDataWatcher.WatchedNodeCreatedEvent(event)
+        } 
+        case EventType.NodeDataChanged => {
+          this.dataWatchEventHandler ! ZookeeperDataWatcher.WatchedDataChangedEvent(event)
+        } 
+        case EventType.NodeChildrenChanged => {
+          this.dataWatchEventHandler ! ZookeeperDataWatcher.WatchedChildrenChangedEvent(event)
+        }
+      }
     }
   }
 }

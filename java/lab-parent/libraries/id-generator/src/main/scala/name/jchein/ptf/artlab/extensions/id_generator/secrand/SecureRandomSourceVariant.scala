@@ -1,4 +1,4 @@
-package name.jchein.ptf.artlab.extensions.id_generator.variants
+package name.jchein.ptf.artlab.extensions.id_generator.secrand
 
 import name.jchein.ptf.artlab.extensions.id_generator.SecureRandomConfigSettings
 import name.jchein.ptf.artlab.extensions.id_generator.IdGeneratorSettings

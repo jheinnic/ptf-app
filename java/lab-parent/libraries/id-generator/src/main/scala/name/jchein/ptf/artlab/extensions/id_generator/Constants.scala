@@ -22,9 +22,9 @@ object Constants {
    // Local config keys
    val IDGEN_CLOCK_TICK_DURATION_KEY: String = "tickDuration"
    
-   val IDGEN_THREAD_COUNT_KEY: String = "threads"
+   val IDGEN_THREAD_COUNT_KEY: String = "concurrency"
 
-   val IDGEN_SOURCE_VARIANT_ORDER_KEY = "sourceOrder"
+   val IDGEN_SOURCE_VARIANT_ORDER_KEY = "origins"
    
    val IDGEN_VARIANT_ID_VALUE_KEY: String = "variantId"
    

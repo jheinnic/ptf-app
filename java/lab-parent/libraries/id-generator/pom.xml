@@ -22,7 +22,12 @@
 		</dependency>
 		<dependency>
 			<groupId>com.lightbend.lagom</groupId>
-			<artifactId>lagom-logback_${scala.binary.version}</artifactId>
+			<artifactId>lagom-logback_2.12</artifactId>
+		</dependency>
+		<dependency>
+		   <groupId>com.typesafe.play</groupId>
+         <artifactId>play-guice_2.12</artifactId>
+         <version>2.8.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -97,35 +102,38 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>uk.co.appministry</groupId>
-			<artifactId>akka-zk_${scala.binary.version}</artifactId>
-			<version>0.1.0</version>
-		</dependency>
-		<!--dependency>
-			<groupId>io.jvm.uuid</groupId>
-			<artifactId>scala-uuid_${scala.binary.version}</artifactId>
-			<version>0.3.1</version>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15to18</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>dev.zio</groupId>
-			<artifactId>zio_${scala.binary.version}</artifactId>
-			<version>1.0.3</version>
-		</dependency-->
+			<groupId>com.yang-bo.dsl.domains.akka.actor</groupId>
+    		<artifactId>typed_2.12</artifactId>
+    		<version>1.0.1+3-c334a586</version>
+		</dependency>
+		<dependency>
+			<groupId>uk.co.appministry</groupId>
+			<artifactId>akka-zk_2.12</artifactId>
+			<version>0.1.0</version>
+		</dependency>
+		<!--dependency> <groupId>io.jvm.uuid</groupId> <artifactId>scala-uuid_${scala.binary.version}</artifactId> 
+			<version>0.3.1</version> </dependency> <dependency> <groupId>dev.zio</groupId> 
+			<artifactId>zio_${scala.binary.version}</artifactId> <version>1.0.3</version> 
+			</dependency -->
 		<dependency>
 			<groupId>com.typesafe.akka</groupId>
 			<artifactId>akka-actor-testkit-typed_2.12</artifactId>
 			<scope>test</scope>
 		</dependency>
-        <dependency>
-        	<groupId>org.openjdk.jmh</groupId>
-        	<artifactId>jmh-core</artifactId>
-        	<version>1.27</version>
-        </dependency>
-        <dependency>
-        	<groupId>org.openjdk.jmh</groupId>
-        	<artifactId>jmh-generator-annprocess</artifactId>
-        	<version>1.27</version>
-        </dependency>
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-core</artifactId>
+			<version>1.27</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-generator-annprocess</artifactId>
+			<version>1.27</version>
+		</dependency>
 	</dependencies>
 
 	<build>

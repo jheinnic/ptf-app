@@ -8,6 +8,38 @@ import name.jchein.ptflibs.math.field.LongGroupGeneratorSpliterator;
 import name.jchein.ptflibs.math.field.PrimePowerGroup;
 
 public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
+	private final class ResetPointRecord implements Comparable<ResetPointRecord> {
+		private final long effectiveAfter;
+		private final BigInteger resetRandom;
+		private final BigInteger resetEpoch;
+		private final long resetSeries;
+		private final LongGroupGeneratorSpliterator iterator;
+		
+		ResetPointRecord(
+			final long effectiveAfter,
+			final BigInteger resetRandom, 
+			final BigInteger resetEpoch, 
+			final long resetSeries,
+			final LongGroupGeneratorSpliterator iterator
+		) {
+			this.effectiveAfter = effectiveAfter;
+			this.resetRandom = resetRandom;
+			this.resetEpoch = resetEpoch;
+			this.resetSeries = resetSeries;
+			this.iterator = iterator;
+		}
+		
+		@Override
+		public int compareTo(ResetPointRecord other) {
+			if (this.effectiveAfter < other.effectiveAfter) {
+				return -1;
+			} else if (this.effectiveAfter > other.effectiveAfter) {
+				return 1;
+			}
+			return 0;
+		}
+	}
+
 	private final int epochShift;
 	private final long epochMask;
 	private final long seriesMask;
@@ -21,9 +53,10 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 	private BigInteger activeEpoch;
 	private long activeSeries;
 
-	private BigInteger resetRandom;
-	private BigInteger resetEpoch;
-	private long resetSeries;
+	private Stack<ResetPointRecord> resetStack;
+//	private BigInteger resetRandom;
+//	private BigInteger resetEpoch;
+//	private long resetSeries;
 	
 	protected int randHi16;
 	protected long randHi40;
@@ -65,17 +98,17 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 		this.activeEpochIterator =
 			this.epochSource.findBasePrimeGenerator();
 		
-		this.advanceNextEpoch();
-		this.setResetTarget();
+//		this.advanceNextEpoch();
+//		this.setResetTarget();
 	}
 
-	public void onBackTick4040(Random4040Callback callback) {
-		this.onBackTick();
+	public void onBackTick4040(final long timestamp, Random4040Callback callback) {
+		this.onBackTick(timestamp);
 		callback.accept(this.randHi40, this.randLo40);
 	}
 
-	public void onBackTickIntLong(RandomIntLongCallback callback) {
-		this.onBackTick();
+	public void onBackTickIntLong(final long timestamp, RandomIntLongCallback callback) {
+		this.onBackTick(timestamp);
 		callback.accept(this.randHi16, this.randLo64);
 	}
 
@@ -86,13 +119,13 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 	 * values, since those values are certain to be paired with different series
 	 * values now.
 	 */
-	public void onForwardTick4040(Random4040Callback callback) {
-		this.onSeriesTick();
+	public void onForwardTick4040(final long timestamp, Random4040Callback callback) {
+		this.onSeriesTick(timestamp);
 		callback.accept(this.randHi40, this.randLo40);
 	}
 
-	public void onForwardTickIntLong(RandomIntLongCallback callback) {
-		this.onSeriesTick();
+	public void onForwardTickIntLong(final long timestamp, RandomIntLongCallback callback) {
+		this.onSeriesTick(timestamp);
 		callback.accept(this.randHi16, this.randLo64);
 	}
 
@@ -101,28 +134,28 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 	 * to return their next value, or if using random values without a concept of
 	 * sequence, a different value at any rate.
 	 */
-	public void onSameTick4040(Random4040Callback callback) {
-		this.onNext();
+	public void onSameTick4040(final long timestamp, Random4040Callback callback) {
+		this.onNext(timestamp);
 		callback.accept(this.randHi40, this.randLo40);
 	}
 
-	public void onSameTickIntLong(RandomIntLongCallback callback) {
-		this.onNext();
+	public void onSameTickIntLong(final long timestamp, RandomIntLongCallback callback) {
+		this.onNext(timestamp);
 		callback.accept(this.randHi16, this.randLo64);
 	}
 
-	protected void onBackTick() {
-		this.advanceNextEpoch();
+	protected void onBackTick(final long timestamp) {
+		this.advanceNextEpoch(timestamp);
 		this.setResetTarget();
 		this.unpackActiveReturn();
 	}
 	
-	protected void onSeriesTick() {
+	protected void onSeriesTick(final long timestamp) {
 		this.resetActiveRandom();
 		this.unpackActiveReturn();
 	}
 	
-	protected void onNext() {
+	protected void onNext(final long timestamp) {
 		// TODO: This is too general--it should be possible to implement more
 		//       efficient unpacking that only unpacks the low order bits with
 		//       series updates (series's maximum bit length guarantees it fits
@@ -140,14 +173,15 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 		this.activeEpochIterator = this.activeEpochIterator.reset();
 	}
 
-	private void setResetTarget() {
+	private void setResetTarget(long timestamp) {
+		
 		this.resetRandom = this.activeRandom;
 		this.resetSeries = this.activeSeries;
 		this.resetEpoch = this.activeEpoch;
 		this.activeEpochIterator = this.activeEpochIterator.fork();
 	}
 		
-	private void advanceNextEpoch() {
+	private void advanceNextEpoch(long timestamp) {
 		if (! this.activeEpochIterator.tryAdvance(
 			(long nextEpoch) -> {
 				long epochBits = nextEpoch & this.epochMask;
@@ -172,6 +206,11 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 			}
 		)) {
 			throw new IllegalStateException("Epoch sequence iterator ran out options!");
+		} else {
+			// TODO: Advance the highwater mater for the earliest clock tick where we can reuse 
+			//       the new activeEpoch.  This should probably call the setResetTarget( ) method
+			//       and evolve that method's implementation to use a reset Stack rather than 
+			//       single reference.
 		}
 	}
 	

@@ -3,13 +3,12 @@ package name.jchein.ptf.artlab.extensions.zookeeper
 import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.retry.ExponentialBackoffRetry
 import org.apache.curator.x.async.AsyncCuratorFramework
-import name.jchein.ptf.artlab.extensions.id_generator.IdGeneratorSettings
 import java.time.temporal.ChronoUnit
 import org.apache.curator.framework.state.ConnectionStateListenerManagerFactory
 import org.apache.curator.framework.CuratorFramework
 
 object AkkaCuratorClient {
-  def apply(settings: ZkClientSettings) : AsyncCuratorFramework = {
+  def apply(settings: ZkClientExtension.Settings) : AsyncCuratorFramework = {
     val retryPolicy = new ExponentialBackoffRetry(
       settings.baseRetryDelay.get(ChronoUnit.MILLIS).toInt,
       settings.maxRetryCount,

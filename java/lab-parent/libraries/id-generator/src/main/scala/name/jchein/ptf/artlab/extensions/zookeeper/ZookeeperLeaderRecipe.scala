@@ -134,11 +134,11 @@ class ZookeeperLeaderRecipe(
   type ZkConnectionSuccessful = ZookeeperSessionWatcher.ZkConnectionSuccessful
   type ZkConnectionSuspended = ZookeeperSessionWatcher.ZkConnectionSuspended
 
-  type LifecycleStage = ZookeeperClient.LifecycleStage.LifecycleStage
-  val INITIAL = ZookeeperClient.LifecycleStage.INITIAL
-  val CONNECTED = ZookeeperClient.LifecycleStage.CONNECTED
-  val SUSPENDED = ZookeeperClient.LifecycleStage.SUSPENDED
-  val LOST = ZookeeperClient.LifecycleStage.LOST
+  type LifecycleStage = ZkClient.LifecycleStage.LifecycleStage
+  val INITIAL = ZkClient.LifecycleStage.INITIAL
+  val CONNECTED = ZkClient.LifecycleStage.CONNECTED
+  val SUSPENDED = ZkClient.LifecycleStage.SUSPENDED
+  val LOST = ZkClient.LifecycleStage.LOST
   
   type PartialBehaviorFunction = PartialFunction[
     ZookeeperLeaderRecipe.Message, 
@@ -147,7 +147,7 @@ class ZookeeperLeaderRecipe(
   type BehaviorFunction = (ZookeeperLeaderRecipe.Message) =>
     Behavior[ZookeeperLeaderRecipe.Message]
 
-	this.context.log.info("Creating Zookeeper Model Client from thread {Thread.currentThread()}")
+	this.context.log.info("Creating Zookeeper Leader Latch from thread {Thread.currentThread()}")
 
 	val latchHandles: HashMap[Object, ZookeeperLeaderRecipe.LeaderLatchHolder] =
 	  HashMap[Object, ZookeeperLeaderRecipe.LeaderLatchHolder]();
