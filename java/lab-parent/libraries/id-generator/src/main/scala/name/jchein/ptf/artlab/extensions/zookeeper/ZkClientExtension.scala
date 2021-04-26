@@ -27,16 +27,19 @@ import akka.actor.typed.Dispatchers
 import akka.actor.typed.DispatcherSelector
 import akka.actor.typed.receptionist.Receptionist
 
-object ZkClientExtension extends ExtensionId[ZkClientExtension] with Extension {
+object ZookeeperClientExtension
+extends ExtensionId[ZookeeperClientExtension] {
+  // Scala API
+  override def createExtension(system: ActorSystem[_]): ZookeeperClientExtension =
+    new ZookeeperClientExtension(system)
 
-  def get(system: ActorSystem[_]): ZkClientExtension = apply(system)
-
-  override def createExtension(system: ActorSystem[_]): ZkClientExtension =
-    new ZkClientExtension(system)
+  // Java API
+  def get(system: ActorSystem[_]): ZookeeperClientExtension = apply(system)
 }
 
-class ZkClientExtension(system: ActorSystem[_]) extends Extension {
-  val settings = ZkClientSettings(system)
+class ZookeeperClientExtension(system: ActorSystem[_])
+extends Extension {
+  val settings = ZookeeperClientSettings(system)
 
   val zkActorRef = system.systemActorOf(
     Behaviors.supervise(
@@ -48,7 +51,7 @@ class ZkClientExtension(system: ActorSystem[_]) extends Extension {
         randomFactor = 0.2
       )
     ),
-    "idGenZkClient",
+    "idGenZookeeperClient",
     ActorTags(
       Set("IdGenerator", "Zookeeeper")
     ).withDispatcherFromConfig(Constants.ZK_BLOCKING_DISPATCHER_NAME)
