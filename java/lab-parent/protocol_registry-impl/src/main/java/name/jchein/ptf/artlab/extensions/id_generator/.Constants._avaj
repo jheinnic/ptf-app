@@ -1,0 +1,29 @@
+package name.jchein.ptf.artlab.extensions.id_generator;
+
+public interface Constants {
+   public static final String ZK_QUORUM_KEY = "jchptf.idgen.zookeeper.quorum"; 
+
+   public static final String ZK_USERNAME_KEY = "jchptf.idgen.zookeeper.username"; 
+   
+   public static final String ZK_PASSWORD_KEY = "jchptf.idgen.zookeeper.password"; 
+   
+   public static final String ZK_ZNODE_KEY = "jchptf.idgen.zookeeper.znode";
+   
+   public static final String LOCAL_CLUSTER_ID_KEY = "jchptf.idgen.local.cluster_id";
+
+   public static final String LOCAL_GENERATOR_ID_KEY = "jchptf.idgen.local.generator_id";
+   
+   public static final String USE_MODE_KEY = "jchptf.idgen.use_mode";
+
+//   public static final String ZK_SPREAD_ZNODE_KEY = "jchptf.idgen.spread.znode";
+//   
+//   public static final String LOCAL_SPREAD_CLUSTER_KEY = "jchptf.idgen.spread.cluster_id";
+//
+//   public static final String LOCAL_SPREAD_GENERATOR_KEY = "jchptf.idgen.spread.generator_id";
+//
+//   public static final String ZK_TIMED_ZNODE_KEY = "jchptf.idgen.timed.znode";
+//   
+//   public static final String LOCAL_TIMED_CLUSTER_KEY = "jchptf.idgen.timed.cluster_id";
+//
+//   public static final String LOCAL_TIMED_GENERATOR_KEY = "jchptf.idgen.timed.generator_id";
+}

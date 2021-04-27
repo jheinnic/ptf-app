@@ -1,0 +1,29 @@
+package name.jchein.ptf.artlab.extensions.id_generator;
+
+import akka.actor.typed.ActorSystem;
+import akka.actor.typed.ExtensionId;
+
+public class ZookeeperClientExtension extends ExtensionId<ZookeeperClientImpl> {
+	// single instance of the identifier
+	private final static ZookeeperClientExtension instance = new ZookeeperClientExtension();
+
+	// protect against other instances than the singleton
+	private ZookeeperClientExtension() {
+	}
+
+	// This static method singleton accessor is needed to be able to enable the
+	// extension through config when
+	// implementing extensions in Java.
+	public static ZookeeperClientExtension getInstance() {
+		return instance;
+	}
+
+	public ZookeeperClientImpl createExtension(ActorSystem<?> system) {
+		return new ZookeeperClientImpl(system.settings().config());
+	}
+
+	// convenience accessor
+	public static ZookeeperClientImpl get(ActorSystem<?> system) {
+		return instance.apply(system);
+	}
+}

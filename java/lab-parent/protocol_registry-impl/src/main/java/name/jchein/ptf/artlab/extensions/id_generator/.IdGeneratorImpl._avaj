@@ -1,0 +1,33 @@
+package name.jchein.ptf.artlab.extensions.id_generator;
+
+import akka.actor.typed.Extension;
+import com.typesafe.config.Config;
+import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+
+public class IdGeneratorImpl implements Extension {
+
+	  public final String USE_MODE;
+	  public final String ZK_QUORUM;
+	  public final String ZK_USERNAME;
+	  public final String ZK_PASSWORD;
+	  public final String CLUSTER_ID;
+	  public final String GENERATOR_ID;
+	  
+	  public final Duration CIRCUIT_BREAKER_TIMEOUT;
+
+	  public IdGeneratorImpl(Config config) {
+	    USE_MODE = config.getString(Constants.USE_MODE_KEY);
+        ZK_QUORUM = config.getString(Constants.ZK_QUORUM_KEY);
+        ZK_USERNAME = config.getString(Constants.ZK_USERNAME_KEY);
+        ZK_PASSWORD = config.getString(Constants.ZK_PASSWORD_KEY);
+        CLUSTER_ID = config.getString(Constants.LOCAL_CLUSTER_ID_KEY);
+        GENERATOR_ID = config.getString(Constants.LOCAL_GENERATOR_ID_KEY);
+
+	    CIRCUIT_BREAKER_TIMEOUT =
+	        Duration.ofMillis(
+	            config.getDuration("myapp.circuit-breaker.timeout", TimeUnit.MILLISECONDS));
+	  }
+	}
+
+

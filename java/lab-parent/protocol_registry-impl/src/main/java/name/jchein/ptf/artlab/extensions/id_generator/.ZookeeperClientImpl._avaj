@@ -1,0 +1,26 @@
+package name.jchein.ptf.artlab.extensions.id_generator;
+
+import akka.actor.typed.Extension;
+	import akka.actor.AbstractExtensionId;
+	import akka.actor.ExtensionIdProvider;
+	import akka.actor.ExtendedActorSystem;
+	import akka.actor.typed.ActorSystem;
+	import com.typesafe.config.Config;
+	import java.util.concurrent.TimeUnit;
+	import java.time.Duration;
+
+public class ZookeeperClientImpl implements Extension {
+
+	  public final String DB_URI;
+	  public final Duration CIRCUIT_BREAKER_TIMEOUT;
+
+	  public ZookeeperClientImpl(Config config) {
+	    DB_URI = config.getString("myapp.db.uri");
+	    CIRCUIT_BREAKER_TIMEOUT =
+	        Duration.ofMillis(
+	            config.getDuration("myapp.circuit-breaker.timeout", TimeUnit.MILLISECONDS));
+	  }
+	}
+
+
+}

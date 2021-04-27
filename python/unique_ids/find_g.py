@@ -4,64 +4,60 @@ import math
 def find_g_for_p(p):
      m = 0
      w = 0
+     pm1 = p - 1
      retval = []
-     for ii in range(p-1, 0, -1):
+     for ii in range(pm1, 0, -1):
          x = 1
          g = ii
          v = set()
-         v.add(1)
-         z = 0
-         while z == 0:
+         while x not in v:
+             v.add(x)
              # print(f" ** {x}")
              x = (x * g) % p
-             z = x in v
-             v.add(x)
          b = len(v)
          # print(f"{ii} -> {b}")
-         if b == (p - 1):
+         if b == pm1:
              retval.append(ii)
      return retval
 
  
-def wind_g_for_p(g, p):
+def wind_g_for_p_to_e(g, p, e):
+    """
+    Use this when you are certain that g is a generator for p and thereof of p^e, excluding multiples of p.
+    In order to be efficient, this sequence generator does not actively detect cycles.  It calculates the expected
+    field order assuming that two things hold true: 
+
+    1) p is definitely a prime
+    2) g is definitely a generator for p^1
+
+    If either condition is not true, there will be cycles in the resulting sequence before it runs out.
+
+    Call test_g_for_p() for a cycle-detecting routine that validates (2).  Primality is left up to the caller to verify.
+    """
+    end = p - 1
+    for ii in range(1, e):
+        end = end * p
     x = 1
-    v = set()
-    l = list()
-    v.add(x)
-    l.append(x)
-    for ii in range(0, p):
-        # print(x)
-        x = (x * g) % p
-        y = set()
-        y.add(x)
-        z = len(v.intersection(y))
-        if z > 0:
-            print(f"Cycle ends after {ii} at {x}")
-            return v
-        v.add(x)
-        l.append(x)
-        if (ii % 5000) == 4999:
-            print(f"Found {ii}\n")
-    return(l)
+    p_to_e = pow(p, e)
+    for ii in range(1, end + 1):
+        yield x
+        x = (x * g) % p_to_e
+        # if (ii % 5000) == 4999:
+        #     print(f"So far, len(v) = {ii}\n")
  
 
 def test_g_for_p(g, p):
-    x = 1
     v = set()
-    v.add(x)
-    for ii in range(0, p):
+    for x in wind_g_for_p_to_e(g, p, 1):
         print(x)
-        x = (x * g) % p
-        y = set()
-        y.add(x)
-        if len(v.intersection(y)) > 0:
-            print(f"Cycle found after {len(v)} iterations, halting on {ii}")
-            return v
+        if x in v:
+            print(f"Early cycle detected after {len(v)} iterations, halting on {x}")
+
+            if x != 1:
+                print(f"{p} must not be prime!")
+            return (False, v)
         v.add(x)
-        if (ii % 1000) == 999:
-            print(f"So far, len(v) = {len(v)}")
-    print(x)
-    return(v)
+    return (True, v)
 
 
 def pick_a_prime(target):
@@ -115,10 +111,16 @@ def mul_mod(a, b, m):
    return d
 
 
-def order_pairs(p, g):
+def order_pairs(g, p):
+    """
+    If p is n, there will be (p)*(p-1) values returned, accounting for all ordered pairs without replacement from p values.
+    If p is a prime power, p^n, then there will be (p^n) * ((p^n) - (p^(n-1))) values returned without replacement from p values.
+    -- There will be more gaps than just the self-paired diagonal when n > 1 because the underlying sequence must skip every
+       multiple the base prime.
+    """
     p2 = p * p
     pm1 = p - 1
-    yield([0, 0])
+    yield([0, 1])
     i = g
     while i != 1:
         # i_norm = i - (math.floor(i / p))
@@ -129,4 +131,20 @@ def order_pairs(p, g):
         yield([x, y])
         i = (i * g) % p2
 
-    
+
+def dense_wind_g_for_p_to_e(g, p, e):
+    outer = [p]
+    inner = [p-1]
+    for index in range(0, e - 1):
+        outer.append(outer[index] * p)
+        inner.append(inner[index] * p)
+    for x in wind_g_for_p_to_e(g, p, e):
+        i = e - 1
+        adj_x = 0
+        while i >= 0:
+            remainder = x % outer[i]
+            adj_x = adj_x + (((x - remainder) / outer[i]) * inner[i])
+            x = remainder
+            i = i - 1
+        yield int(adj_x + remainder)
+

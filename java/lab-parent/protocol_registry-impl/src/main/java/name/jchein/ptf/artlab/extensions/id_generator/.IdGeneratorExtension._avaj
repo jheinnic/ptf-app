@@ -1,0 +1,30 @@
+package name.jchein.ptf.artlab.extensions.id_generator;
+
+import akka.actor.typed.ActorSystem;
+import akka.actor.typed.ExtensionId;
+
+public class IdGeneratorExtension extends ExtensionId<IdGeneratorImpl> {
+	// single instance of the identifier
+	private final static IdGeneratorExtension instance = new IdGeneratorExtension();
+
+	// protect against other instances than the singleton
+	private IdGeneratorExtension() {
+	}
+
+	// This static method singleton accessor is needed to be able to enable the
+	// extension through config when
+	// implementing extensions in Java.
+	public static IdGeneratorExtension getInstance() {
+		return instance;
+	}
+
+	public IdGeneratorImpl createExtension(ActorSystem<?> system) {
+		return new IdGeneratorImpl(
+			system.settings().config());
+	}
+
+	// convenience accessor
+	public static IdGeneratorImpl get(ActorSystem<?> system) {
+		return instance.apply(system);
+	}
+}
