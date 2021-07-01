@@ -4,6 +4,7 @@ from os import mkdir, link, path
 import numpy as np
 import csv
 
+rootDir = "grayscaled/clusters_120_4"
 
 def ensureDirectory(nextDirPath):
     print("Ensure directory: " + nextDirPath)
@@ -16,10 +17,10 @@ def ensureDirectory(nextDirPath):
 affinities = ["euclidean", "cosine"]
 methods = ["average", "ward", "complete", "single"]
 
-expectedClusterCount = 360
+expectedClusterCount = 52
 classRange = range(0, expectedClusterCount + 1)
 for affinity in affinities:
-    affinityDir = path.join("clusters", affinity)
+    affinityDir = path.join(rootDir, affinity)
     ensureDirectory(affinityDir)
     for method in methods:
         if method == "ward" and affinity == "cosine":
@@ -31,12 +32,13 @@ for affinity in affinities:
             ensureDirectory(nextDirPath)
 
 data: typing.List[typing.List[float]]
-with open("images_32_40.csv", "r") as fileIn:
+# with open("images_32_40.csv", "r") as fileIn:
+with open("grayscaled/gsPatterns_120_4.csv", "r") as fileIn:
     source = csv.reader(fileIn, delimiter="|")
     data = [[float(value) for value in row] for row in source]
 
 labels: typing.List[str]
-with open("images/label_order.txt", "r") as labelFileIn:
+with open("images/collected_log.dat", "r") as labelFileIn:
     labels = [label.strip() for label in labelFileIn]
 
 if len(data) != len(labels):
@@ -52,7 +54,7 @@ for method in methods:
     for affinity in affinities:
         if method == "ward" and affinity == "cosine":
             continue
-        methodDir = path.join("clusters", affinity, method)
+        methodDir = path.join(rootDir, affinity, method)
         print("Computing affinity=" + affinity + ", method=" + method)
         cluster = AgglomerativeClustering(
             n_clusters=expectedClusterCount, affinity=affinity, linkage=method
@@ -65,6 +67,7 @@ for method in methods:
             )
             for nextPair in labelClusters:
                 srcPath = path.join("images", nextPair[0])
-                destPath = path.join(methodDir, str(nextPair[1]), nextPair[0])
+                destPath = path.join(methodDir, str(nextPair[1]), path.basename(nextPair[0]))
                 link(srcPath, destPath)
+                print(destPath + "\n")
                 writeCsv.writerow(nextPair)

@@ -6,7 +6,8 @@ import random
 
 #
 data = []
-with open('./images_24_8.csv', 'r') as fileIn:
+# with open('./images_24_8.csv', 'r') as fileIn:
+with open('./grayscaled/gsPatterns_120_4.csv', 'r') as fileIn:
     source = csv.reader(fileIn, delimiter="|")
     data.extend(source)
 #
@@ -17,7 +18,7 @@ for row in data:
         row[ii] = float(row[ii])
         ii += 1
 #
-rowCount = 800
+rowCount = 3025
 labelList = range(1, rowCount)
 viewCount = 2
 methods = ['single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward']
