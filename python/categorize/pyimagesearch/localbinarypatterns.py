@@ -73,7 +73,8 @@ class LBPDataSet:
 
     def __call__(self, param):
         tokens = param.split(":")
-        self.output = open(tokens[0], "w")
+        self.openFile = None
+        self.output = tokens[0] # open(tokens[0], "w")
         self.points = int(tokens[1])
         self.radius = int(tokens[2])
         self.open()
@@ -81,9 +82,10 @@ class LBPDataSet:
 
     def open(self):
         if not self.is_open:
+            self.openFile = open(self.output, "w")
             self.lbp = LocalBinaryPatterns(self.points, self.radius)
             self.writer = csv.writer(
-                self.output, delimiter="|", lineterminator="\n", strict=1
+                self.openFile, delimiter="|", lineterminator="\n", strict=1
             )
             self.data = []
             self.is_open = True
@@ -96,7 +98,7 @@ class LBPDataSet:
 
     def close(self):
         if self.is_open:
-            self.output.close()
+            self.openFile.close()
             self.writer = ""
             self.lbp = ""
             self.data = ""

@@ -1,29 +1,28 @@
 # import the necessary packages
-from luminostics.categorize.pyimagesearch.localbinarypatterns import (
-    LocalBinaryPatterns,
-)
-from imutils import paths
+from pyimagesearch import (LocalBinaryPatterns, LBPDataSet)
+from skimage.io import imread
+from skimage.color import rgb2gray
 import argparse
 import csv
-import cv2
 
 
 # construct the argument parse to examine input arguments
 ap = argparse.ArgumentParser()
 ap.add_argument(
     "-i",
-    "--images",
-    dest="images",
-    default="./images",
+    "--imageList",
+    dest="image_list",
+    default="./images/collected_log.dat",
     type=str,
     help="directory with the corpus images (default = './images')",
 )
 ap.add_argument(
     "-o",
-    "--output",
-    dest="output",
+    "--outputFile",
+    dest="output_file",
     required=True,
-    type=argparse.FileType("w"),
+    # type=argparse.FileType("w"),
+    type=str,
     help="file to load with the Local Binary Pattern data row for each image file",
 )
 ap.add_argument(
@@ -45,7 +44,7 @@ ap.add_argument(
 ap.add_argument(
     "additionalDataSets",
     default=[],
-    type=LBPDataSet(),
+    type=LBPDataSet,
     nargs="*",
     help="Additional colon-separated <output>:<points>:<radius> triples",
 )
@@ -53,11 +52,14 @@ args = vars(ap.parse_args())
 #
 # Initialize the local binary patterns descriptor along with data and label list.
 # Include LBP instances for any additional outputs requested.
-imageDir = args["images"]
-labels = paths.list_images(imageDir)
+image_list = args["image_list"]
+fd = open(image_list)
+labels = [t.strip() for t in fd.readlines()]
+fd.close()
+
 dataSets = [
     LBPDataSet(
-        output=args["output"], points=args["points"], radius=args["radius"]
+        output=args["output_file"], points=args["points"], radius=args["radius"]
     )
 ]
 dataSets.extend(args["additionalDataSets"])
@@ -65,15 +67,16 @@ dataSets.extend(args["additionalDataSets"])
 # Loop over images of input data set.  Convert each to a grayscale suitable for
 # LBP analysis, then derive and append a row of data from each requested LBP specification.
 for imagePath in labels:
+    print(imagePath)
     # load the image, convert it to grayscale, and describe it
-    image = cv2.imread(imagePath)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image = imread(imagePath)
+    # gray = rgb2gray(image)
     # extract the label from the image path, then update the
     # label and data lists
     # labels.append(imagePath.split("/")[-2])
     for dataSet in dataSets:
-        dataSet.describe(gray)
-#
+        dataSet.describe(image)
+
 # Flush and close each LBP specification's data file to cleanup before exiting.
 for dataSet in dataSets:
     dataSet.close()
