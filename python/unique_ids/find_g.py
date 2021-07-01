@@ -141,6 +141,7 @@ def dense_wind_g_for_p_to_e(g, p, e):
     for x in wind_g_for_p_to_e(g, p, e):
         i = e - 1
         adj_x = 0
+        remainder = 0
         while i >= 0:
             remainder = x % outer[i]
             adj_x = adj_x + (((x - remainder) / outer[i]) * inner[i])
