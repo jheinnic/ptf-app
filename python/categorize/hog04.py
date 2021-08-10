@@ -34,7 +34,7 @@ color_name = ["Red", "Green", "Blue"]
 
 
 def ensure_directory(next_dir_path):
-    print("Ensure directory: " + next_dir_path)
+    # print("Ensure directory: " + next_dir_path)
     if not path.isdir(next_dir_path):
         parent_path = path.dirname(next_dir_path)
         print("Parent is" + parent_path)
@@ -124,8 +124,11 @@ class LoadDensityModel:
                             str(next_pair[1]),
                             path.basename(src_path)
                         )
-                        print(src_path + " -> " + dest_path + "\n")
-                        link(src_path, dest_path)
+                        try:
+                            link(src_path, dest_path)
+                            print(src_path + " -> " + dest_path + "\n")
+                        except FileExistsError:
+                            print(src_path + " -> " + dest_path + " already exists\n")
 
 
     def ensure_lanes(self):
@@ -157,7 +160,6 @@ class LoadDensityModel:
                     self.work_dir, "lane_images", minus_ext
                 )
                 ensure_directory(path.dirname(lane_prefix))
-                self.lane_images = []
                 all_lane_image_data = self.find_lanes(
                     imread(source_path)
                 )
@@ -170,42 +172,55 @@ class LoadDensityModel:
                         lane_writer.write("%s::%s\n" % (lane_file_path, source_path))
                         self.lane_images.append(lane_file_path)
                 self.loaded_image_count = self.loaded_image_count + 1
+        # This would de-dup the list but also reorder it!!
+        # self.lane_images = list(set(self.lane_images))
+        # Instead, presume all duplicates appear at the list end and truncate it
+        # to the count of uniques
+        self.loaded_image_count = len(set(self.lane_images))
 
     def ensure_feature_vectors(self):
         if self.feature_vectors is None:
             self.ensure_lanes()
             self.feature_vectors = []
-            loaded_count = 0
+            self.loaded_vector_count = []
+            lane_image_count = len(set(self.lane_images))
+            print("Lane Images Count is:")
+            print(lane_image_count)
             for feature_index in range(0, len(self.feature_files)):
                 feature_file = self.feature_files[feature_index]
+                print(feature_file)
+                vector_data = []
+                vector_count = 0
                 if path.exists(feature_file):
                      with open(feature_file, "r") as fileIn:
                          source = csv.reader(fileIn, delimiter="|")
                          vector_data = [[float(value) for value in row] for row in source]
-                         self.feature_vectors.append(vector_data)
-                         if len(vector_data) > self.loaded_vector_count:
-                             self.loaded_vector_count = len(vector_data)
-        while self.loaded_vector_count < self.loaded_image_count:
-            print(self.loaded_vector_count)
-            print(self.loaded_image_count)
-            with open(feature_file, "a") as fileOut:
-                vector_data = []
-                writer = csv.writer(
-                    fileOut, delimiter="|", lineterminator="\n", strict=1
-                )
-                skip_count = self.loaded_vector_count
-                print(len(self.lane_images))
-                for lane_image in self.lane_images:
-                    if skip_count > 0:
-                        skip_count = skip_count - 1
-                        continue
-                    image_data = imread(lane_image)
-                    feature_data = self.describe(
-                        lane_image, image_data, feature_index)
-                    writer.writerow(feature_data)
-                    vector_data.append(feature_data)
+                         vector_count = len(vector_data)
                 self.feature_vectors.append(vector_data)
-                self.loaded_vector_count = self.loaded_vector_count + len(vector_data)
+                self.loaded_vector_count.append(vector_count)
+                print(vector_data)
+                print(vector_count)
+                print(lane_image_count)
+                with open(feature_file, "a") as fileOut:
+                    writer = csv.writer(
+                        fileOut, delimiter="|", lineterminator="\n", strict=1
+                    )
+                    # while vector_count < lane_image_count:
+                    skip_count = vector_count
+                    for lane_image in self.lane_images:
+                        if skip_count > 0:
+                            skip_count = skip_count - 1
+                            continue
+                        image_data = imread(lane_image)
+                        feature_data = self.describe(lane_image, image_data, feature_index)
+                        writer.writerow(feature_data)
+                        vector_data.append(feature_data)
+                        vector_count += 1
+                    self.feature_vectors.append(vector_data)
+                    self.loaded_vector_count.append(vector_count)
+                    print("End of Line")
+                    print(len(vector_data))
+                    print(vector_count)
 
 
     def find_lanes(self, img):
