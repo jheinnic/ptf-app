@@ -9,9 +9,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Iterator
+# from collections.abc import Iterator
+from typing import Union, Dict, Iterator
 from concurrent import futures
-from typing import Union, Dict
 import multiprocessing
 import contextlib
 import datetime
@@ -23,6 +23,7 @@ import sys
 import grpc
 
 from typez import IUploadHelper, UploadOptions, AutoTagging, SignedUpload
+from public_id_helper import PublicIdHelper
 from upload_helper import UploadHelper
 import v1.signed_image_uploads_pb2_grpc
 from v1.signed_image_uploads_pb2 import CreateSignedUploadSingleRequest, CreateSignedUploadBatchRequest,\
@@ -143,7 +144,8 @@ def _reserve_port():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     if sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT) == 0:
         raise RuntimeError("Failed to set SO_REUSEPORT.")
-    sock.bind(('192.168.5.4', 0))
+    sock.bind(('192.168.5.69', 0))
+    # sock.bind(('0.0.0.0', 0))
     try:
         yield sock.getsockname()[1]
     finally:
@@ -152,7 +154,8 @@ def _reserve_port():
 
 def main():
     with _reserve_port() as port:
-        bind_address = '192.168.5.4:{}'.format(port)
+        # bind_address = '0.0.0.0:{}'.format(port)
+        bind_address = '192.168.5.69:{}'.format(port)
         _LOGGER.info("Binding to '%s'", bind_address)
         sys.stdout.flush()
         workers = []

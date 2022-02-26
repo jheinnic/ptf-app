@@ -69,7 +69,7 @@ def _add_optional_feature_flag(
     request.options.insert(index, option)
 
 
-def _run_worker_query(_dummy_var) -> Tuple[int, bytes]:
+def _run_worker_query(_dummy_var=1) -> Tuple[int, bytes]:
     print(f"Calling API on {_dummy_var}")
     request: CreateSignedUploadSingleRequest = CreateSignedUploadSingleRequest()
     _add_optional_feature_flag(request, 0, FlaggedOptionalFeature.COLOR_ANALYSIS)
