@@ -2,23 +2,25 @@ import itertools
 import math
 
 def find_g_for_p(p):
-     m = 0
-     w = 0
-     pm1 = p - 1
-     retval = []
-     for ii in range(pm1, 0, -1):
-         x = 1
-         g = ii
-         v = set()
-         while x not in v:
-             v.add(x)
-             # print(f" ** {x}")
-             x = (x * g) % p
-         b = len(v)
-         # print(f"{ii} -> {b}")
-         if b == pm1:
-             retval.append(ii)
-     return retval
+    if p <= 2:
+        raise "Prime must be 3 or greater"
+    m = 0
+    w = 0
+    pm1 = p - 1
+    retval = []
+    for ii in range(pm1, 0, -1):
+        x = 1
+        g = ii
+        v = set()
+        while x not in v:
+            v.add(x)
+            # print(f" ** {x}")
+            x = (x * g) % p
+        b = len(v)
+        # print(f"{ii} -> {b}")
+        if b == pm1:
+            retval.append(ii)
+    return retval
 
  
 def wind_g_for_p_to_e(g, p, e):
@@ -34,22 +36,21 @@ def wind_g_for_p_to_e(g, p, e):
 
     Call test_g_for_p() for a cycle-detecting routine that validates (2).  Primality is left up to the caller to verify.
     """
-    end = p - 1
-    for ii in range(1, e):
-        end = end * p
-    x = 1
+    if p <= 2:
+        raise "Prime must be 3 or greater"
+    end = pow(p, e -1) * (p - 1)
     p_to_e = pow(p, e)
-    for ii in range(1, end + 1):
-        yield x
+    x = g
+    yield 1
+    yield g
+    for ii in range(2, end):
         x = (x * g) % p_to_e
-        # if (ii % 5000) == 4999:
-        #     print(f"So far, len(v) = {ii}\n")
+        yield x
  
 
-def test_g_for_p(g, p):
+def _test_g_for_p_test_primality(g, p):
     v = set()
     for x in wind_g_for_p_to_e(g, p, 1):
-        print(x)
         if x in v:
             print(f"Early cycle detected after {len(v)} iterations, halting on {x}")
 
@@ -58,6 +59,25 @@ def test_g_for_p(g, p):
             return (False, v)
         v.add(x)
     return (True, v)
+
+
+def _test_g_for_p_trust_primality(g, p):
+    z = p
+    for x in wind_g_for_p_to_e(g, p, 1):
+        if x <= z:
+            if z == p:
+                if x != 1:
+                    raise "All sequences must start with 1!!"
+                z = 1
+            else:
+                return (False,)
+    return (True, set(range(1, p)))
+
+
+def test_g_for_p(g, p, trust_prime=False):
+    if p <= 2:
+        raise "Prime must be 3 or greater"
+    return _test_g_for_p_trust_primality(g, p) if trust_prime else _test_g_for_p_test_primality(g, p)
 
 
 def pick_a_prime(target):
