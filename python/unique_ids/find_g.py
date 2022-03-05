@@ -23,7 +23,7 @@ def find_g_for_p(p):
     return retval
 
  
-def wind_g_for_p_to_e(g, p, e):
+def wind_g_for_p_to_e(g, p, e, x2=False):
     """
     Use this when you are certain that g is a generator for p and thereof of p^e, excluding multiples of p.
     In order to be efficient, this sequence generator does not actively detect cycles.  It calculates the expected
@@ -38,12 +38,12 @@ def wind_g_for_p_to_e(g, p, e):
     """
     if p <= 2:
         raise "Prime must be 3 or greater"
-    end = pow(p, e -1) * (p - 1)
-    p_to_e = pow(p, e)
+    order = pow(p, e -1) * (p - 1) if e > 1 else p
+    p_to_e = pow(p, e) * (2 if x2 else 1)
     x = g
     yield 1
     yield g
-    for ii in range(2, end):
+    for ii in range(2, order):
         x = (x * g) % p_to_e
         yield x
  
@@ -133,8 +133,8 @@ def mul_mod(a, b, m):
 
 def order_pairs(g, p):
     """
-    If p is n, there will be (p)*(p-1) values returned, accounting for all ordered pairs without replacement from p values.
-    If p is a prime power, p^n, then there will be (p^n) * ((p^n) - (p^(n-1))) values returned without replacement from p values.
+    If p is prime, GF(p^2) will return (p)*(p-1) values, accounting for all ordered pairs without replacement from GF(p^2)
+    If p is a prime power of q (q is prime), q^n, then there will be (q^(2n-1)) * (q-1) values returned without replacement from p values.
     -- There will be more gaps than just the self-paired diagonal when n > 1 because the underlying sequence must skip every
        multiple the base prime.
     """
