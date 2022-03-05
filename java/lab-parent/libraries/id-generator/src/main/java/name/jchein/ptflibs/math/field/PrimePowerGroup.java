@@ -44,21 +44,24 @@ public final class PrimePowerGroup {
 				final BigInteger nextPrime =
 					BigInteger.probablePrime(nextPrimeBits, random);
 				int nextExp = baseExp;
-				BigInteger nextPower = nextPrime.pow(baseExp);
-				BigInteger nextDist = target.subtract(nextPower);
-				BigInteger candidatePower = nextPower.multiply(nextPrime);
-				BigInteger candidateDist = target.subtract(candidatePower);
+				BigInteger primeMinusOne = nextPrime.subtract(BigInteger.ONE); 
+				BigInteger nextPower = BigInteger.ZERO;
+				BigInteger nextDist = target;
+				BigInteger candidatePower = nextPrime.pow(nextExp);
+				BigInteger candidateAdjusted = candidatePower.divide(nextPrime).multiply(primeMinusOne);
+				BigInteger candidateDist = target.subtract(candidateAdjusted);
 				while(candidateDist.signum() > -1) {
 					nextPower = candidatePower;
 					nextDist = candidateDist;
 					nextExp += 1;
-					candidatePower = candidatePower.multiply(nextPrime);
-					candidateDist = target.subtract(candidatePower);
+					candidatePower = nextPower.multiply(nextPrime);
+				    candidateAdjusted = candidatePower.divide(nextPrime).multiply(primeMinusOne);
+					candidateDist = target.subtract(candidateAdjusted);
 				}
 				if (bestDist.subtract(nextDist).signum() > -1) {
 					bestPrime = nextPrime;
 					bestDist = nextDist;
-					bestExp = nextExp;
+					bestExp = nextExp - 1;
 				}
 			}
 			nextPrimeBits += 1;
@@ -85,43 +88,78 @@ public final class PrimePowerGroup {
 		if (p.subtract(g).signum() != 1) {
 			throw new IllegalArgumentException("g must be smaller than p");
 		}
-		return BigInteger.ONE.equals(
-			g.modPow(this.p.subtract(BigInteger.ONE), this.p)
-		);
-//		BigInteger counter = BigInteger.valueOf(2);
-//		BigInteger latest = g;
-//		while(! BigInteger.ONE.equals(latest) && ! this.p.equals(counter)) {
-//			latest = g.modPow(counter, p);
-//			counter = counter.add(BigInteger.ONE);
-//		}
-//		System.out.println(
-//			String.format(
-//				"Stopped with p = <%s>, g = <%s>, counter = <%s>, latest = <%s>",
-//				this.p, g, counter, latest
-//			)
-//		);
-//		return this.p.equals(counter);
+		if (
+			! BigInteger.ONE.equals(
+				g.modPow(
+					this.p.subtract(BigInteger.ONE), this.p))
+		) {
+			return false;
+		}
+		BigInteger counter = BigInteger.valueOf(2);
+		BigInteger latest = g;
+		while(! (latest.equals(BigInteger.ONE) || counter.equals(this.p))) {
+			// TODO: Verify the assumption that iterative multiplication is more efficient here
+			//       because we have to check for a cycle (return to 1) on each iteration anyhow.
+			// latest = g.modPow(counter, p);
+			latest = g.multiply(latest).mod(p);
+			counter = counter.add(BigInteger.ONE);
+		}
+		return this.p.equals(counter);
 	}
 
+//	public LongGroupGeneratorSpliterator findBasePrimeGenerator() {
+//		BigInteger g = this.p.shiftRight(1);
+//		while((g.signum() == 1) && ! this.verifyBasePrimeGenerator(g)) {
+//			g = g.subtract(BigInteger.ONE);
+//		}
+//		if (g.signum() != 1) {
+//			g = this.p.shiftRight(1).add(BigInteger.ONE);
+//			while(! this.p.equals(g) && ! this.verifyBasePrimeGenerator(g)) {
+//				g = g.add(BigInteger.ONE);
+//			}
+//		}
+//		if (this.p.equals(g)) {
+//			throw new IllegalStateException(
+//				String.format("No generator could be found for <%s>", this.p.toString())
+//			);
+//
+//		}
+//
+//		return this.getPowerPrimeSequence(g, BigInteger.ONE, true);
+//	}
+
+
 	public LongGroupGeneratorSpliterator findBasePrimeGenerator() {
-		BigInteger g = this.p.shiftRight(1);
-		while((g.signum() == 1) && ! this.verifyBasePrimeGenerator(g)) {
-			g = g.subtract(BigInteger.ONE);
-		}
-		if (g.signum() != 1) {
-			g = this.p.shiftRight(1).add(BigInteger.ONE);
-			while(! this.p.equals(g) && ! this.verifyBasePrimeGenerator(g)) {
-				g = g.add(BigInteger.ONE);
+		BigInteger gLo = this.p.shiftRight(1);
+		BigInteger gHi = gLo.add(BigInteger.ONE);
+		boolean hiGen  = this.verifyBasePrimeGenerator(gHi);
+		boolean noGen  = ! hiGen;
+		if (noGen && gLo.shiftLeft(1).equals(this.p)) {
+			noGen = ! this.verifyBasePrimeGenerator(gLo);
+			if (noGen) {
+				gLo = gLo.subtract(BigInteger.ONE);
+				gHi = gHi.add(BigInteger.ONE);
 			}
 		}
-		if (this.p.equals(g)) {
+		while(noGen && ! gLo.equals(BigInteger.ONE)) {
+			hiGen = this.verifyBasePrimeGenerator(gHi);
+			if (hiGen) {
+				noGen = false;
+			} else {
+				noGen = ! this.verifyBasePrimeGenerator(gLo);
+				if (noGen) {
+					gLo   = gLo.subtract(BigInteger.ONE);
+					gHi   = gHi.add(BigInteger.ONE);
+				}
+			}
+		}
+		if (noGen) {
 			throw new IllegalStateException(
 				String.format("No generator could be found for <%s>", this.p.toString())
 			);
-
 		}
 
-		return this.getPowerPrimeSequence(g, BigInteger.ONE, true);
+		return this.getPowerPrimeSequence(hiGen ? gHi : gLo, BigInteger.ONE, true);
 	}
 
 	public LongGroupGeneratorSpliterator getPowerPrimeSequence(final BigInteger g) {
@@ -144,7 +182,7 @@ public final class PrimePowerGroup {
 	 * Returns a stream that contains all (p^n - p - 2) integers that are 
 	 * greater than 1, less than p^n, and not divisible by p.
 	 * 
-	 * Requires a prime, an nonent, and a generator for the multiplicative
+	 * Requires a prime, an exponent, and a generator for the multiplicative
 	 * @param g
 	 * @param p
 	 * @param n

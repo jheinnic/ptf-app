@@ -26,7 +26,7 @@ public class FindSome {
     		results[4] = next;
     	});
     	System.out.println(
-    		String.format("<%d> <%d> <%d> <%d> <%d>",
+    		String.format("First five values: <%d> <%d> <%d> <%d> <%d>",
     			results[0], results[1], results[2], 
     			results[3], results[4]
     		)

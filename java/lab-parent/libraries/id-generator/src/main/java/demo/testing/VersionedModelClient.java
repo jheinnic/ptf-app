@@ -23,13 +23,10 @@ import org.apache.zookeeper.data.Stat;
 import lombok.Value;
 
 public class VersionedModelClient {
-	public static final String LEADER_PATH = "/testing/jchDemo/v1";
-	public static final String LEADER_PATH_B = "/testing/jchDemo/v2";
-	public static final String LEADER_PATH_C = "/testing/jchDemo/v3";
-
-	public static final String ID_A = "Alice";
-	public static final String ID_B = "Bob";
-	public static final String ID_C = "Charlie";
+	static final String LEADER_PATH_A = "/testing/jchDemo/v1";
+	static final String LEADER_PATH_B = "/testing/jchDemo/v2";
+	static final String LEADER_PATH_C = "/testing/jchDemo/v3";
+	static final String NODE_SEQUENCE_SUFFIX = "nodeSequence";
 
 	public static void main(String[] args) {
 		RetryPolicy retryPolicy = new ExponentialBackoffRetry(150, 4, 10000);
@@ -61,137 +58,104 @@ public class VersionedModelClient {
 			this.curator = curator;
 		}
 
-		static final String NODE_SEQUENCE_SUFFIX = "nodeSequence";
-
 		public void stateChanged(CuratorFramework client, ConnectionState newState) {
 			System.out.println(newState);
 			if (newState == ConnectionState.CONNECTED) {
 				final AsyncCuratorFramework asyncCurator = AsyncCuratorFramework.wrap(curator);
-
-				final ModelSpec<NodeSequenceModel> mySpec = ModelSpec
-						.builder(ZPath.parse("/testing/demo/variants/v0").child(NODE_SEQUENCE_SUFFIX),
-								JacksonModelSerializer.build(NodeSequenceModel.class))
-						.build();
-
-				final ModeledFramework<NodeSequenceModel> modelClient = ModeledFramework.builder(asyncCurator, mySpec)
-						.withUnhandledErrorListener((String message, Throwable exception) -> {
-							if (message != null) {
-								System.out.println("Unhandled Error: " + message);
-							} else {
-								System.out.println("Unhandled Error: ");
-							}
-							if (exception != null) {
-								exception.printStackTrace();
-							}
-						}).watched(WatchMode.stateChangeAndSuccess).build();
-				final VersionedModeledFramework<NodeSequenceModel> versionClient = modelClient.versioned();
-				final Stat stat = new Stat();
-
+				final JacksonModelSerializer<NodeSequenceModel> modelSeriaizer = JacksonModelSerializer.build(NodeSequenceModel.class);
+				
 				NodeSequenceModel state = new NodeSequenceModel((byte) 1, 1L, 1L);
-				Versioned<NodeSequenceModel> versionedState = Versioned.from(state, 2);
-				AsyncStage<String> firstSet = versionClient.set(versionedState, stat);
-				firstSet.exceptionally(
-					(Throwable err) -> {
-						err.printStackTrace();
-						return err.getMessage();
-					}
-				).thenAccept(
-					(String str) -> {
-						System.out.println("On first set: " + str);
-				
-						if (stat != null) {
-							System.out.println(
-								String.format(
-									"** First %s: %d, %d", 
-									stat.toString(), 
-									stat.getVersion(), 
-									stat.getDataLength()
-								)
-							);
-						}
-					}
-				);
+				VersionedModeledFramework<NodeSequenceModel> versionClient = getVersionedClient(asyncCurator, modelSeriaizer, LEADER_PATH_A);
+				Stat firstCallStat = appendNodeSequence(versionClient, state, "First");
 
-				if (firstSet.event() == null) {
-					System.out.println("No watch handler for firstSet");
-				} else {
-					firstSet.event().thenAccept(
-						(WatchedEvent evt) -> {
-							System.out.println("On first set watch: " + evt.toString());
-						}
-					);
-				}
-				
 				state = new NodeSequenceModel((byte) 1, 2L, 3307L);
-				versionedState = Versioned.from(state, 3);
-				AsyncStage<String> secondSet = versionClient.set(versionedState, stat);
-				secondSet.exceptionally(
-					(Throwable err) -> {
-						err.printStackTrace();
-						return null;
-					}
-				).thenAccept(
-					(String str) -> {
-						System.out.println("On second set: " + str);
-				
-						if (stat != null) {
-							System.out.println(
-								String.format(
-									"** Second %s: %d, %d", 
-									stat.toString(), 
-									stat.getVersion(), 
-									stat.getDataLength()
-								)
-							);
-						}
-					}
-				);
-
-				if (secondSet.event() == null) {
-					System.out.println("No watch handler for secondSet");
-				} else {
-					secondSet.event().thenAccept(
-						(WatchedEvent evt) -> {
-							System.out.println("On second set watch: " + evt.toString());
-						}
-					);
-				}
-				
+				versionClient = getVersionedClient(asyncCurator, modelSeriaizer, LEADER_PATH_B);
+				Stat secondCallStat = appendNodeSequence(versionClient, state, "Second");
+			
 				state = new NodeSequenceModel((byte) 1, 3L, 930301L);
-				versionedState = Versioned.from(state, 4);
-				AsyncStage<String> thirdSet = versionClient.set(versionedState, stat);
-				thirdSet.exceptionally(
-					(Throwable err) -> {
-						err.printStackTrace();
-						return null;
-					}
-				).thenAccept(
-					(String str) -> {
-						System.out.println("On third set: " + str);
+				versionClient = getVersionedClient(asyncCurator, modelSeriaizer, LEADER_PATH_C);
+				Stat thirdCallStat = appendNodeSequence(versionClient, state, "Third");
+				
+				System.out.println(
+					String.format(
+						"Stats: [{}, {}. {}]",
+						firstCallStat, secondCallStat, thirdCallStat)
+				);
+			}
+		}
 
-						if (stat != null) {
-							System.out.println(
-								String.format(
-									"** Third %s: %d, %d", 
-									stat.toString(), 
-									stat.getVersion(), 
-									stat.getDataLength()
-								)
-							);
+		private VersionedModeledFramework<NodeSequenceModel> getVersionedClient(
+				final AsyncCuratorFramework asyncCurator,
+				final JacksonModelSerializer<NodeSequenceModel> modelSeriaizer, final String stateRoot) {
+			final ModelSpec<NodeSequenceModel> mySpec = ModelSpec
+				.builder(
+					getNodeSeqZPath(stateRoot), modelSeriaizer)
+				.build();
+			final VersionedModeledFramework<NodeSequenceModel> versionClient = ModeledFramework.builder(asyncCurator, mySpec)
+				.withUnhandledErrorListener(
+					(String message, Throwable exception) -> {
+						if (message != null) {
+							System.out.println("Unhandled Error: " + message);
+						} else {
+							System.out.println("Unhandled Error: ");
 						}
+						if (exception != null) {
+							exception.printStackTrace();
+						}
+					})
+				.watched(WatchMode.stateChangeAndSuccess)
+				.build()
+				.versioned();
+			return versionClient;
+		}
+
+		private ZPath getNodeSeqZPath(String stateRoot) {
+			return ZPath.parse(stateRoot).child(NODE_SEQUENCE_SUFFIX);
+		}
+
+		private Stat appendNodeSequence(final VersionedModeledFramework<NodeSequenceModel> versionClient,
+				NodeSequenceModel state, String upperPosition) {
+			final Stat stat = new Stat();
+			final String position = upperPosition.toLowerCase();
+			final Versioned<NodeSequenceModel> versionedState = Versioned.from(state, 2);
+			final AsyncStage<String> setCall = versionClient.set(versionedState, stat);
+			setCall.exceptionally(
+				(Throwable err) -> {
+					err.printStackTrace();
+					return err.getMessage();
+				}
+			).thenAccept(
+				(String str) -> {
+					System.out.println(
+						String.format("On {} set: {}", position, str)
+					);
+					if (stat != null) {
+						System.out.println(
+							String.format(
+								"** %s %s: %d, %d", 
+								upperPosition,
+								stat.toString(), 
+								stat.getVersion(), 
+								stat.getDataLength()
+							)
+						);
+					}
+				}
+			);
+			if (setCall.event() == null) {
+				System.out.println(
+					String.format("No watch handler for {} set", position)
+				);
+			} else {
+				setCall.event().thenAccept(
+					(WatchedEvent evt) -> {
+						System.out.println(
+							String.format("On {} set watch: {}", position, evt)
+						);
 					}
 				);
-
-				if (thirdSet.event() == null) {
-					System.out.println("No watch handler for thirdSet");
-				} else {
-					thirdSet.event().thenAccept(
-						(WatchedEvent evt) -> {
-							System.out.println("On third set watch: " + evt.toString());
-						}
-					);
-				}
 			}
+			return stat;
 		}
 	}
 

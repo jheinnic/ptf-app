@@ -1,6 +1,7 @@
 package name.jchein.ptflibs.identity.ulid;
 
 import java.math.BigInteger;
+import java.util.Stack;
 
 import org.hibernate.validator.constraints.Range;
 
@@ -102,12 +103,12 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 //		this.setResetTarget();
 	}
 
-	public void onBackTick4040(final long timestamp, Random4040Callback callback) {
+	public void onBackTick4040(final long timestamp, EqualSplitBitsProvider callback) {
 		this.onBackTick(timestamp);
 		callback.accept(this.randHi40, this.randLo40);
 	}
 
-	public void onBackTickIntLong(final long timestamp, RandomIntLongCallback callback) {
+	public void onBackTickIntLong(final long timestamp, LilHiBigLoBitsProvider callback) {
 		this.onBackTick(timestamp);
 		callback.accept(this.randHi16, this.randLo64);
 	}
@@ -119,12 +120,12 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 	 * values, since those values are certain to be paired with different series
 	 * values now.
 	 */
-	public void onForwardTick4040(final long timestamp, Random4040Callback callback) {
+	public void onForwardTick4040(final long timestamp, EqualSplitBitsProvider callback) {
 		this.onSeriesTick(timestamp);
 		callback.accept(this.randHi40, this.randLo40);
 	}
 
-	public void onForwardTickIntLong(final long timestamp, RandomIntLongCallback callback) {
+	public void onForwardTickIntLong(final long timestamp, LilHiBigLoBitsProvider callback) {
 		this.onSeriesTick(timestamp);
 		callback.accept(this.randHi16, this.randLo64);
 	}
@@ -134,12 +135,12 @@ public class AbstractULIDRandomBitsStrategy implements ULIDRandomBitsStrategy {
 	 * to return their next value, or if using random values without a concept of
 	 * sequence, a different value at any rate.
 	 */
-	public void onSameTick4040(final long timestamp, Random4040Callback callback) {
+	public void onSameTick4040(final long timestamp, EqualSplitBitsProvider callback) {
 		this.onNext(timestamp);
 		callback.accept(this.randHi40, this.randLo40);
 	}
 
-	public void onSameTickIntLong(final long timestamp, RandomIntLongCallback callback) {
+	public void onSameTickIntLong(final long timestamp, LilHiBigLoBitsProvider callback) {
 		this.onNext(timestamp);
 		callback.accept(this.randHi16, this.randLo64);
 	}

@@ -16,16 +16,6 @@ package name.jchein.ptflibs.identity.ulid;
  *
  */
 public interface ULIDRandomBitsStrategy {
-	@FunctionalInterface
-	public interface Random4040Callback {
-		void accept(long hi40Bits, long lo40Bits);
-	}
-
-	@FunctionalInterface
-	public interface RandomIntLongCallback {
-		void accept(int hi16Bits, long lo64Bits);
-	}
-
 	/**
 	 * Signals "next" and also reversal of clock sequence, indicating that randomizer must advance to a next
 	 * value, but not one it has already returned.  Furthermore, it must also no longer rewind to a previously
@@ -40,9 +30,9 @@ public interface ULIDRandomBitsStrategy {
 	 * sequence, but may want to augment randomness with some bits set aside for an "epoch" field.  Future
 	 *
 	 */
-	public void onBackTick4040(long timetstamp, Random4040Callback callback);
+	public void onBackTick4040(long timetstamp, EqualSplitBitsProvider callback);
 
-	public void onBackTickIntLong(long timestamp, RandomIntLongCallback callback);
+	public void onBackTickIntLong(long timestamp, LilHiBigLoBitsProvider callback);
 	
 	/**
 	 * Signals "next" and the beginning of a new clock tick.  Generators that either use state to produce a
@@ -50,15 +40,15 @@ public interface ULIDRandomBitsStrategy {
 	 * to repeat previously used values, since those values are certain to be paired with different clock
 	 * values now.
 	 */
-	public void onForwardTick4040(long timestamp, Random4040Callback callback);
+	public void onForwardTick4040(long timestamp, EqualSplitBitsProvider callback);
 
-	public void onForwardTickIntLong(long timestamp, RandomIntLongCallback callback);
+	public void onForwardTickIntLong(long timestamp, LilHiBigLoBitsProvider callback);
 	
 	/**
 	 * Signals next, but with the clock value unchanged.  Generators should advance to return their next
 	 * value, or if using random values without a concept of sequence, a different value at any rate.
 	 */
-	public void onSameTick4040(long timestamp, Random4040Callback callback);
+	public void onSameTick4040(long timestamp, EqualSplitBitsProvider callback);
 
-	public void onSameTickIntLong(long timestamp, RandomIntLongCallback callback);
+	public void onSameTickIntLong(long timestamp, LilHiBigLoBitsProvider callback);
 }

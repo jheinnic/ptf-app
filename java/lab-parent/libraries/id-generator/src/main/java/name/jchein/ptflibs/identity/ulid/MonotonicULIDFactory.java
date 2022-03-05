@@ -112,7 +112,7 @@ public class MonotonicULIDFactory implements ULIDFactory
 
 	private void processULIDRequest(
 		final long timestamp,
-		final ULIDRandomBitsStrategy.Random4040Callback callback)
+		final EqualSplitBitsProvider callback)
 	{
 		final long previousTimestamp = this.latestTimestamp;
 		if (timestamp < previousTimestamp) {
