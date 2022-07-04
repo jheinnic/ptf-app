@@ -88,8 +88,8 @@ class ImageUploadSigningService(v1.signed_image_uploads_pb2_grpc.ImageUploadSign
         )
 
     OPTIONAL_HANDLERS = {
-        "flag": _parse_flagged_feature,
-        "autoTag": _parse_auto_tag_feature,
+        "flag": "_parse_flagged_feature",
+        "autoTag": "_parse_auto_tag_feature"
     }
 
     def _parse_features(
@@ -103,7 +103,7 @@ class ImageUploadSigningService(v1.signed_image_uploads_pb2_grpc.ImageUploadSign
         )
         for feature in _proto_msg.options:
             which_one = feature.WhichOneof('featureKind')
-            self.OPTIONAL_HANDLERS[which_one](request_dict, feature)
+            getattr(ImageUploadSigningService, self.OPTIONAL_HANDLERS[which_one])(request_dict, feature)
         return UploadOptions(
             color_analysis=request_dict["color_analysis"],
             quality_analysis=request_dict["quality_analysis"],
