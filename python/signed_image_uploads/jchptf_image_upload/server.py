@@ -25,10 +25,9 @@ import grpc
 from typez import IUploadHelper, UploadOptions, AutoTagging, SignedUpload
 from public_id_helper import PublicIdHelper
 from upload_helper import UploadHelper
-import v1.signed_image_uploads_pb2_grpc
-from v1.signed_image_uploads_pb2 import CreateSignedUploadSingleRequest, CreateSignedUploadBatchRequest,\
-    SignedUploadSingleReply, SignedUploadBatchReply, FlaggedOptionalFeature, OptionalUploadFeature, \
-    AutoTaggingOptionalFeature
+import signed_image_uploads_pb2_grpc
+from signed_image_uploads_pb2 import CreateSignedUploadSingleRequest, CreateSignedUploadBatchRequest,\
+    SignedUploadSingleReply, FlaggedOptionalFeature, OptionalUploadFeature, AutoTaggingOptionalFeature
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ _PROCESS_COUNT = 3 # multiprocessing.cpu_count()
 _THREAD_CONCURRENCY = multiprocessing.cpu_count()
 
 
-class ImageUploadSigningService(v1.signed_image_uploads_pb2_grpc.ImageUploadSigningService):
+class ImageUploadSigningService(signed_image_uploads_pb2_grpc.ImageUploadSigningService):
     def __init__(self, upload_helper: IUploadHelper):
         self._upload_helper = upload_helper
 
@@ -53,7 +52,7 @@ class ImageUploadSigningService(v1.signed_image_uploads_pb2_grpc.ImageUploadSign
         return reply
 
     def createSignedUploadBatch(self, request: CreateSignedUploadBatchRequest, context
-                                ) -> Iterator[SignedUploadBatchReply]:
+                                ) -> Iterator[SignedUploadSingleReply]:
         _LOGGER.info('Processing batch upload request')
         for reply in self._upload_helper.sign_upload_batch(request, context):
             result = self._upload_helper.sign_upload(
@@ -130,7 +129,7 @@ def _run_server(bind_address):
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=_THREAD_CONCURRENCY),
         options=options)
-    v1.signed_image_uploads_pb2_grpc.add_ImageUploadSigningServiceServicer_to_server(
+    signed_image_uploads_pb2_grpc.add_ImageUploadSigningServiceServicer_to_server(
         ImageUploadSigningService(upload_helper), server)
     server.add_insecure_port(bind_address)
     server.start()
@@ -144,18 +143,18 @@ def _reserve_port():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     if sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT) == 0:
         raise RuntimeError("Failed to set SO_REUSEPORT.")
-    sock.bind(('192.168.5.69', 0))
+
     # sock.bind(('0.0.0.0', 0))
+    sock.bind(('192.168.5.79', 5442))
     try:
         yield sock.getsockname()[1]
     finally:
         sock.close()
 
-
 def main():
     with _reserve_port() as port:
         # bind_address = '0.0.0.0:{}'.format(port)
-        bind_address = '192.168.5.69:{}'.format(port)
+        bind_address = '192.168.5.79:{}'.format(port)
         _LOGGER.info("Binding to '%s'", bind_address)
         sys.stdout.flush()
         workers = []

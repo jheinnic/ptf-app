@@ -32,6 +32,12 @@ PARSE_PATH_PATTERN = re.compile(
         W('/', [8, 8]),
     ))
 )
+PARSE_PATH_PATTERN = re.compile(
+    '/'.join((
+        W('/', [4, 2, 2, 4, 6]),
+        Wn('/', [6]),
+    ))
+)
 PARSE_URL_PATTERN = re.compile(
     '-'.join((
         Wn('', [2, 2]),
@@ -131,6 +137,7 @@ class PublicIdHelper():
         if not tokens:
             raise ValueError(f'{src_public_id} is not a validly formatted id path')
         tokens = tokens.groups()
+        print(tokens)
         dirs = [tokens[x] for x in (6, 4, 2, 0)]
         pad_byte = sum([int(tokens[x]) << (x-1) for x in (7, 5, 3, 1)]).to_bytes(1, 'little')
         words = [b32decode(x.encode()) for x in (''.join(dirs), tokens[9], tokens[8])]
