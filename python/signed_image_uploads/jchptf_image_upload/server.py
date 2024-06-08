@@ -145,7 +145,7 @@ def _reserve_port():
         raise RuntimeError("Failed to set SO_REUSEPORT.")
 
     # sock.bind(('0.0.0.0', 0))
-    sock.bind(('192.168.5.79', 5442))
+    sock.bind(('192.168.1.11', 5442))
     try:
         yield sock.getsockname()[1]
     finally:
@@ -154,7 +154,7 @@ def _reserve_port():
 def main():
     with _reserve_port() as port:
         # bind_address = '0.0.0.0:{}'.format(port)
-        bind_address = '192.168.5.79:{}'.format(port)
+        bind_address = '192.168.1.11:{}'.format(port)
         _LOGGER.info("Binding to '%s'", bind_address)
         sys.stdout.flush()
         workers = []
