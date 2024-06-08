@@ -15,8 +15,8 @@
 # limitations under the License.
 
 load("@rules_proto//proto:defs.bzl", "proto_library")
-load("//bzl:grpc_build_system.bzl", "grpc_proto_library")
-load("//bzl:python_rules.bzl", "py_grpc_library", "py_proto_library")
+load("@build_stack_rules_proto//rules/python:grpc_build_system.bzl", "grpc_proto_library")
+load("//bazel:python_rules.bzl", "py_grpc_library", "py_proto_library")
 
 proto_library(
     name = "v1/signed_image_uploads_proto",
