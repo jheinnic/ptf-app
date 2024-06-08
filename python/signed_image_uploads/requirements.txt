@@ -5,4 +5,5 @@ protobuf==3.14.0
 python-dotenv==0.15.0
 requests==2.31.0
 scikit-image==0.17.2
+scikit-optimize==0.10.2
 datauri==1.0.0
